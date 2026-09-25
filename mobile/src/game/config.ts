@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // README's "Deploying the server" section) — this is what Play Store / real
 // device builds fall back to when EXPO_PUBLIC_SERVER_URL isn't set at build
 // time. It's what makes "two friends in different locations" actually work.
-const PRODUCTION_SERVER_URL = 'https://YOUR-DEPLOYED-SERVER-URL.example.com';
+const PRODUCTION_SERVER_URL = 'https://bingo-server-3tsm.onrender.com';
 
 // 10.0.2.2 is the special alias an Android emulator uses to reach its host
 // machine's localhost; iOS simulators can reach the host directly. These
