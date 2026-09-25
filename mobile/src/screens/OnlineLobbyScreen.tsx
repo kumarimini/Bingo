@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import BackButton from '../components/BackButton';
+import EmptyState from '../components/EmptyState';
 import { useOnlineStore } from '../store/onlineStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
@@ -19,15 +20,11 @@ export default function OnlineLobbyScreen() {
   }, [room?.status]);
 
   if (!room) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
-        <BackButton />
-        <Text style={styles.label}>No active room. Go back and create or join one.</Text>
-      </SafeAreaView>
-    );
+    return <EmptyState message="No active room. Go back and create or join one." />;
   }
 
   const me = room.players.find((p) => p.id === playerId);
+  const connectedCount = room.players.filter((p) => p.connected).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
@@ -43,8 +40,8 @@ export default function OnlineLobbyScreen() {
         renderItem={({ item }) => (
           <View style={styles.playerRow}>
             <Text style={styles.playerName}>{item.name}{item.id === playerId ? ' (you)' : ''}</Text>
-            <Text style={item.ready ? styles.ready : styles.notReady}>
-              {item.ready ? '✓ Ready' : 'Waiting'}
+            <Text style={!item.connected ? styles.disconnected : item.ready ? styles.ready : styles.notReady}>
+              {!item.connected ? 'Disconnected' : item.ready ? '✓ Ready' : 'Waiting'}
             </Text>
           </View>
         )}
@@ -54,11 +51,11 @@ export default function OnlineLobbyScreen() {
         title={
           me?.ready
             ? 'Waiting for others…'
-            : room.players.length < 2
+            : connectedCount < 2
               ? 'Waiting for a player to join…'
               : 'Create My Card'
         }
-        disabled={!!me?.ready || room.players.length < 2}
+        disabled={!!me?.ready || connectedCount < 2}
         onPress={() => router.push('/online/card-creation')}
       />
     </SafeAreaView>
@@ -81,4 +78,5 @@ const styles = StyleSheet.create({
   playerName: { color: colors.text, fontWeight: '600' },
   ready: { color: colors.success, fontWeight: '700' },
   notReady: { color: colors.textMuted },
+  disconnected: { color: colors.danger, fontWeight: '700' },
 });

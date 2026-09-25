@@ -5,11 +5,6 @@ import { EVENTS } from '../game/events';
 import { SOCKET_ACK_TIMEOUT_MS, SERVER_URL } from '../game/config';
 import { RoomState } from '../game/types';
 
-interface LastCall {
-  number: number;
-  calledBy: string;
-}
-
 interface BingoResult {
   ok: boolean;
   message: string;
@@ -50,7 +45,6 @@ interface OnlineState {
   room: RoomState | null;
   playerId: string | null;
   error: string | null;
-  lastCall: LastCall | null;
   bingoResult: BingoResult | null;
   gameEndWinners: RoomState['winners'] | null;
 
@@ -70,7 +64,6 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
   room: null,
   playerId: null,
   error: null,
-  lastCall: null,
   bingoResult: null,
   gameEndWinners: null,
 
@@ -87,10 +80,6 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
     });
 
     socket.on(EVENTS.ROOM_UPDATE, (room: RoomState) => set({ room }));
-
-    socket.on(EVENTS.NUMBER_CALLED, ({ number, calledBy }: LastCall) => {
-      set({ lastCall: { number, calledBy } });
-    });
 
     socket.on(EVENTS.BINGO_VALID, ({ playerName, round }: { playerName: string; round: number }) => {
       set({ bingoResult: { ok: true, message: `${playerName} completed ROUND ${round}.`, round, playerName } });
@@ -161,5 +150,5 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
 
   clearBingoResult: () => set({ bingoResult: null }),
 
-  reset: () => set({ room: null, playerId: null, error: null, lastCall: null, bingoResult: null, gameEndWinners: null }),
+  reset: () => set({ room: null, playerId: null, error: null, bingoResult: null, gameEndWinners: null }),
 }));

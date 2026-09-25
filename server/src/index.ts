@@ -4,7 +4,15 @@ import cors from 'cors';
 import { Server, Socket } from 'socket.io';
 import { v4 as uuid } from 'uuid';
 import { EVENTS } from './events';
-import { createRoom, getRoom, joinRoom, findRoomBySocket, resetForNextRound } from './roomManager';
+import {
+  createRoom,
+  getRoom,
+  joinRoom,
+  findRoomBySocket,
+  resetForNextRound,
+  removeRoomIfEmpty,
+  sweepStaleRooms,
+} from './roomManager';
 import { placeNumber, isCardComplete, validateCard, checkRoundWin } from './gameLogic';
 import { RoundNumber } from './types';
 
@@ -28,8 +36,19 @@ function allPlayersReady(code: string): boolean {
   return room.players.length >= 1 && room.players.every((p) => p.ready);
 }
 
+// A socket that creates or joins a second room (e.g. the player backed out to
+// Home and started a new game) would otherwise stay subscribed to the old
+// room's broadcasts forever, occasionally clobbering the new room's state on
+// screen with stale data from the abandoned one.
+function leaveOtherRooms(socket: Socket) {
+  for (const room of socket.rooms) {
+    if (room !== socket.id) socket.leave(room);
+  }
+}
+
 io.on('connection', (socket: Socket) => {
   socket.on(EVENTS.CREATE_ROOM, ({ playerName }: { playerName: string }, cb) => {
+    leaveOtherRooms(socket);
     const playerId = uuid();
     const room = createRoom(playerId, playerName || 'Player');
     room.players[0].socketId = socket.id;
@@ -46,6 +65,7 @@ io.on('connection', (socket: Socket) => {
       const playerId = uuid();
       const updated = joinRoom(code, playerId, playerName || 'Player');
       if (!updated) return cb?.({ ok: false, error: 'Cannot join room' });
+      leaveOtherRooms(socket);
       const player = updated.players.find((p) => p.id === playerId)!;
       player.socketId = socket.id;
       socket.join(code);
@@ -167,8 +187,17 @@ io.on('connection', (socket: Socket) => {
     player.connected = false;
     io.to(room.code).emit(EVENTS.PLAYER_DISCONNECTED, { playerId: player.id });
     broadcastRoom(room.code);
+    removeRoomIfEmpty(room.code);
   });
 });
+
+// Safety net for rooms abandoned without a clean disconnect (e.g. the app was
+// backgrounded/killed, or the player navigated to a new game on the same
+// socket without ever closing the old one) — a disconnect event alone can't
+// catch those, so periodically sweep anything old enough to be stale.
+const SWEEP_INTERVAL_MS = 30 * 60 * 1000;
+const STALE_ROOM_MAX_AGE_MS = 3 * 60 * 60 * 1000;
+setInterval(() => sweepStaleRooms(STALE_ROOM_MAX_AGE_MS), SWEEP_INTERVAL_MS);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 server.listen(PORT, () => {

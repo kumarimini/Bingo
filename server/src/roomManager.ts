@@ -64,6 +64,15 @@ export function removeRoomIfEmpty(code: string) {
   }
 }
 
+/** Removes any room older than maxAgeMs, regardless of connection state — a
+ * backstop for rooms abandoned without ever triggering a socket disconnect. */
+export function sweepStaleRooms(maxAgeMs: number) {
+  const cutoff = Date.now() - maxAgeMs;
+  for (const [code, room] of rooms) {
+    if (room.createdAt < cutoff) rooms.delete(code);
+  }
+}
+
 export function findRoomBySocket(socketId: string): RoomState | undefined {
   for (const room of rooms.values()) {
     if (room.players.some((p) => p.socketId === socketId)) return room;

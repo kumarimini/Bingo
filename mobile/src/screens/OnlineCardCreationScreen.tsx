@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import BingoGrid from '../components/BingoGrid';
 import BackButton from '../components/BackButton';
+import EmptyState from '../components/EmptyState';
 import { useOnlineStore } from '../store/onlineStore';
 import { colors, spacing, font } from '../theme/theme';
 
@@ -19,9 +20,9 @@ export default function OnlineCardCreationScreen() {
     }
   }, [room?.status]);
 
-  if (!room || !playerId) return null;
+  if (!room || !playerId) return <EmptyState message="No active room. Go back and create or join one." />;
   const me = room.players.find((p) => p.id === playerId);
-  if (!me) return null;
+  if (!me) return <EmptyState message="No active room. Go back and create or join one." />;
 
   const complete = me.nextNumber > 25;
 

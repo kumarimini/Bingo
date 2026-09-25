@@ -3,6 +3,7 @@ import { Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import BackButton from '../components/BackButton';
+import EmptyState from '../components/EmptyState';
 import BingoGrid from '../components/BingoGrid';
 import { useOfflineStore } from '../store/offlineStore';
 import { colors, spacing, font } from '../theme/theme';
@@ -30,7 +31,7 @@ export default function OfflineCardCreationScreen() {
     }
   }, [human?.nextNumber]);
 
-  if (!human) return null;
+  if (!human) return <EmptyState message="No game in progress. Go back and start one from Home." />;
 
   const handleCellPress = (row: number, col: number) => {
     placeNumber(human.id, row, col);

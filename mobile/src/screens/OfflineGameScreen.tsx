@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import BackButton from '../components/BackButton';
+import EmptyState from '../components/EmptyState';
 import BingoGrid from '../components/BingoGrid';
 import BingoLettersHeader from '../components/BingoLettersHeader';
 import { useOfflineStore } from '../store/offlineStore';
@@ -36,7 +37,7 @@ export default function OfflineGameScreen() {
     }
   }, [winners]);
 
-  if (!human) return null;
+  if (!human) return <EmptyState message="No game in progress. Go back and start one from Home." />;
 
   const crossedLetters = Math.min(5, countCompletedLines(human.grid, markedNumbers));
 
