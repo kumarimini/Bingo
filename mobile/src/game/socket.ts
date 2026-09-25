@@ -6,7 +6,10 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(SERVER_URL, {
-      transports: ['websocket'],
+      // Allow the polling handshake to fall back to if a direct websocket
+      // upgrade fails (common on emulators and some Wi-Fi networks) —
+      // forcing websocket-only here was silently breaking the connection.
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       reconnectionAttempts: 10,
       timeout: 8000,

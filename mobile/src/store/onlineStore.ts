@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Socket } from 'socket.io-client';
 import { getSocket } from '../game/socket';
 import { EVENTS } from '../game/events';
-import { SOCKET_ACK_TIMEOUT_MS } from '../game/config';
+import { SOCKET_ACK_TIMEOUT_MS, SERVER_URL } from '../game/config';
 import { RoomState } from '../game/types';
 
 interface LastCall {
@@ -111,7 +111,7 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
       socket,
       EVENTS.CREATE_ROOM,
       { playerName },
-      "Couldn't reach the server. Check your connection and try again."
+      `Couldn't reach the server at ${SERVER_URL}. Check it's running and reachable.`
     );
     if (res.ok && res.room && res.playerId) {
       set({ room: res.room, playerId: res.playerId });
@@ -126,7 +126,7 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
       socket,
       EVENTS.JOIN_ROOM,
       { code, playerName },
-      "Couldn't reach the server. Check your connection and try again."
+      `Couldn't reach the server at ${SERVER_URL}. Check it's running and reachable.`
     );
     if (res.ok && res.room && res.playerId) {
       set({ room: res.room, playerId: res.playerId });
