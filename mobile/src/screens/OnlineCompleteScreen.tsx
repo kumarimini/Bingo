@@ -1,0 +1,58 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import Button from '../components/Button';
+import BackButton from '../components/BackButton';
+import { useOnlineStore } from '../store/onlineStore';
+import { colors, spacing, font, radius } from '../theme/theme';
+
+export default function OnlineCompleteScreen() {
+  const router = useRouter();
+  const gameEndWinners = useOnlineStore((s) => s.gameEndWinners);
+  const room = useOnlineStore((s) => s.room);
+  const reset = useOnlineStore((s) => s.reset);
+  const winners = gameEndWinners ?? room?.winners ?? [];
+
+  const goHome = () => {
+    reset();
+    router.push('/');
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
+      <Text style={styles.title}>🏁 GAME COMPLETE</Text>
+
+      <View style={styles.results}>
+        {[1, 2, 3].map((round) => {
+          const winner = winners.find((w) => w.round === round);
+          return (
+            <View key={round} style={styles.row}>
+              <Text style={styles.roundText}>ROUND {round}</Text>
+              <Text style={styles.winnerText}>{winner?.playerName ?? '—'}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <Button title="Home" onPress={goHome} />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3), justifyContent: 'center' },
+  title: { color: colors.text, fontSize: font.h1, fontWeight: '800', textAlign: 'center', marginBottom: spacing(4) },
+  results: { marginBottom: spacing(5) },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    padding: spacing(2),
+    borderRadius: radius.md,
+    marginBottom: spacing(1.5),
+  },
+  roundText: { color: colors.textMuted, fontWeight: '700' },
+  winnerText: { color: colors.gold, fontWeight: '700' },
+});

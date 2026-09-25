@@ -5,20 +5,28 @@ import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import BackButton from '../components/BackButton';
 import BingoGrid from '../components/BingoGrid';
+import BingoLettersHeader from '../components/BingoLettersHeader';
 import NumberCallPad from '../components/NumberCallPad';
 import { useOfflineStore } from '../store/offlineStore';
 import { useBotAutoplay } from '../game/useBotAutoplay';
-import { roundLabel } from '../game/logic';
+import { countCompletedLines } from '../game/logic';
+import { playTapSound, playWinSound } from '../game/sounds';
 import { colors, spacing, font, radius } from '../theme/theme';
 
 export default function OfflineGameScreen() {
   const router = useRouter();
   useBotAutoplay();
 
-  const { players, calledNumbers, markedNumbers, currentRound, status, winners } = useOfflineStore();
+  const { mode, players, calledNumbers, markedNumbers, currentRound, winners } = useOfflineStore();
   const callNumber = useOfflineStore((s) => s.callNumber);
   const markNumber = useOfflineStore((s) => s.markNumber);
   const claimBingo = useOfflineStore((s) => s.claimBingo);
+
+  // In Host Game (Pass & Play), everyone's card lives on this device and the
+  // tab strip lets whoever's turn it is switch to their own. In Bot mode
+  // there's exactly one human, and bot cards stay hidden — no reason to peek.
+  const humanPlayers = players.filter((p) => !p.isBot);
+  const visiblePlayers = mode === 'host' ? players : humanPlayers;
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [padOpen, setPadOpen] = useState(false);
@@ -31,13 +39,16 @@ export default function OfflineGameScreen() {
       const latest = winners[winners.length - 1];
       seenWinnersRef.current = winners.length;
       setResultMsg({ ok: true, text: `${latest.playerName} completed ROUND ${latest.round}.` });
+      playWinSound();
     }
   }, [winners]);
 
-  const activePlayer = players[activeIdx];
+  const activePlayer = mode === 'host' ? players[activeIdx] : humanPlayers[0];
   const lastCalled = calledNumbers[calledNumbers.length - 1];
 
   if (!activePlayer) return null;
+
+  const crossedLetters = Math.min(5, countCompletedLines(activePlayer.grid, markedNumbers));
 
   const handleCellPress = (row: number, col: number) => {
     const num = activePlayer.grid[row][col];
@@ -45,6 +56,7 @@ export default function OfflineGameScreen() {
     if (!calledNumbers.includes(num)) return;
     if (markedNumbers.includes(num)) return;
     markNumber(num);
+    playTapSound();
   };
 
   const handleBingo = () => {
@@ -65,25 +77,28 @@ export default function OfflineGameScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
-      <Text style={styles.roundLabel}>ROUND {currentRound} · {roundLabel(currentRound)}</Text>
+      <BingoLettersHeader crossedCount={crossedLetters} />
+      <Text style={styles.roundLabel}>ROUND {currentRound}</Text>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs}>
-        {players.map((p, i) => (
-          <Pressable key={p.id} onPress={() => setActiveIdx(i)} style={[styles.tab, i === activeIdx && styles.tabActive]}>
-            <Text style={[styles.tabText, i === activeIdx && styles.tabTextActive]}>
-              {p.isBot ? '🤖 ' : ''}
-              {p.name}
-            </Text>
-            {p.roundsWon.length > 0 && <Text style={styles.tabWins}> 🏆{p.roundsWon.length}</Text>}
-          </Pressable>
-        ))}
-      </ScrollView>
+      {mode === 'host' && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs}>
+          {visiblePlayers.map((p) => {
+            const i = players.indexOf(p);
+            return (
+              <Pressable
+                key={p.id}
+                onPress={() => setActiveIdx(i)}
+                style={[styles.tab, i === activeIdx && styles.tabActive]}
+              >
+                <Text style={[styles.tabText, i === activeIdx && styles.tabTextActive]}>{p.name}</Text>
+                {p.roundsWon.length > 0 && <Text style={styles.tabWins}> 🏆{p.roundsWon.length}</Text>}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
-      <BingoGrid
-        grid={activePlayer.grid}
-        markedNumbers={markedNumbers}
-        onCellPress={activePlayer.isBot ? undefined : handleCellPress}
-      />
+      <BingoGrid grid={activePlayer.grid} markedNumbers={markedNumbers} onCellPress={handleCellPress} />
 
       <View style={styles.lastCalled}>
         <Text style={styles.lastCalledLabel}>Last Called</Text>
@@ -93,13 +108,7 @@ export default function OfflineGameScreen() {
       <View style={styles.actions}>
         <Button title="Call Number" onPress={() => setPadOpen(true)} style={{ flex: 1 }} />
         <View style={{ width: spacing(1.5) }} />
-        <Button
-          title="Bingo"
-          variant="danger"
-          onPress={handleBingo}
-          disabled={activePlayer.isBot}
-          style={{ flex: 1 }}
-        />
+        <Button title="Bingo" variant="danger" onPress={handleBingo} style={{ flex: 1 }} />
       </View>
 
       <NumberCallPad

@@ -17,10 +17,10 @@ export default function HostSetupScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
-      <Text style={styles.title}>Host Game</Text>
+      <Text style={styles.title}>Pass & Play</Text>
       <Text style={styles.subtitle}>
-        Everyone plays on this device, passed around — a room code is generated for your game just like the online
-        flow.
+        Everyone plays on this device, passed around — a room code is generated for your game just for flavor (no
+        networking, no other phones involved).
       </Text>
       <TextInput
         value={name}
@@ -30,7 +30,7 @@ export default function HostSetupScreen() {
         style={styles.input}
         autoFocus
       />
-      <Button title="Host Game" onPress={handleHost} />
+      <Button title="Start" onPress={handleHost} />
     </SafeAreaView>
   );
 }

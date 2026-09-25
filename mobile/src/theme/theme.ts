@@ -12,10 +12,12 @@ export const colors = {
   text: '#F5F5FF',
   textMuted: '#9A9CC0',
   cellEmpty: '#2A2D52',
-  cellFilled: '#3A3D6A',
+  cellFilled: '#12132A',
   cellCalled: '#4A3F8F',
-  cellMarked: '#3DDC97',
+  cellMarked: 'rgba(255,255,255,0.06)',
   border: '#3A3D6A',
+  strike: '#FFFFFF',
+  winLine: '#FFFFFF',
 };
 
 export const spacing = (n: number) => n * 8;
