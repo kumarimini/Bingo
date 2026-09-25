@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import BingoGrid from '../components/BingoGrid';
@@ -30,25 +30,21 @@ export default function OnlineCardCreationScreen() {
       <BackButton />
       <Text style={styles.title}>CREATE YOUR CARD</Text>
 
-      <View style={styles.nextBox}>
-        <Text style={styles.nextLabel}>NEXT NUMBER</Text>
-        <Text style={styles.nextNumber}>{complete ? '✓' : me.nextNumber}</Text>
-      </View>
-
       <BingoGrid grid={me.grid} onCellPress={complete ? undefined : (r, c) => placeNumber(r, c)} />
 
-      {complete && (
-        <Text style={styles.waiting}>Card locked. Waiting for other players…</Text>
-      )}
+      {complete && <Text style={styles.waiting}>Card locked. Waiting for other players…</Text>}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3) },
-  title: { color: colors.textMuted, fontSize: font.small, letterSpacing: 1, textAlign: 'center', marginTop: spacing(2) },
-  nextBox: { alignItems: 'center', marginVertical: spacing(2) },
-  nextLabel: { color: colors.textMuted, fontSize: font.small, letterSpacing: 1 },
-  nextNumber: { color: colors.gold, fontSize: font.h1, fontWeight: '800' },
+  container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3), paddingTop: spacing(6) },
+  title: {
+    color: colors.textMuted,
+    fontSize: font.small,
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: spacing(2),
+  },
   waiting: { color: colors.textMuted, textAlign: 'center', marginTop: spacing(3) },
 });

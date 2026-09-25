@@ -10,13 +10,11 @@ import { colors, spacing, font, radius } from '../theme/theme';
 export default function OfflineCompleteScreen() {
   const router = useRouter();
   const winners = useOfflineStore((s) => s.winners);
-  const mode = useOfflineStore((s) => s.mode);
   const reset = useOfflineStore((s) => s.reset);
 
   const playAgain = () => {
-    const nextRoute = mode === 'bot' ? '/bot/setup' : '/host/setup';
     reset();
-    router.push(nextRoute);
+    router.push('/bot/setup');
   };
 
   const goHome = () => {

@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { colors, spacing, font } from '../theme/theme';
 
 // Renders nothing when there's nowhere to go back to (i.e. on the Home screen).
+// Absolutely positioned so it always sits in the same top-left spot regardless
+// of how the rest of the screen is laid out (e.g. centered content columns).
 export default function BackButton() {
   const router = useRouter();
   if (!router.canGoBack()) return null;
@@ -17,11 +19,12 @@ export default function BackButton() {
 
 const styles = StyleSheet.create({
   btn: {
-    alignSelf: 'flex-start',
+    position: 'absolute',
+    top: spacing(1),
+    left: spacing(1.5),
+    zIndex: 10,
     paddingVertical: spacing(1),
     paddingHorizontal: spacing(1.5),
-    marginLeft: -spacing(1.5),
-    marginBottom: spacing(1),
   },
   text: {
     color: colors.text,

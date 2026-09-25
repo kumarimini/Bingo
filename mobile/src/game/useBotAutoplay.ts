@@ -3,14 +3,14 @@ import { useOfflineStore } from '../store/offlineStore';
 import { checkRoundWin } from './logic';
 
 const TICK_MS = 1500;
-const BOT_CALL_CHANCE = 0.5;
+const BOT_ACT_CHANCE = 0.6;
 
 /**
- * Drives every bot player in the local game store: instantly marks called
- * numbers that appear on a bot's card (a bot never "forgets" to mark),
- * occasionally calls a fresh number to keep the game moving, and claims
- * Bingo the moment a bot's card satisfies the current round's pattern.
- * A no-op once there are no bot players (e.g. Host Game mode).
+ * Drives every bot player in the local game store. Mirrors what a human does
+ * by tapping a cell: each tick, a bot may "touch" one still-unmarked number
+ * from its own card, calling and marking it in one step. It also claims
+ * Bingo the moment its card satisfies the current round's pattern.
+ * A no-op once there are no bot players.
  */
 export function useBotAutoplay() {
   useEffect(() => {
@@ -21,22 +21,18 @@ export function useBotAutoplay() {
       if (bots.length === 0) return;
 
       for (const bot of bots) {
+        if (Math.random() >= BOT_ACT_CHANCE) continue;
+        const current = useOfflineStore.getState();
+        const candidates: number[] = [];
         for (const row of bot.grid) {
           for (const num of row) {
-            if (num !== null && state.calledNumbers.includes(num) && !state.markedNumbers.includes(num)) {
-              state.markNumber(num);
-            }
+            if (num !== null && !current.markedNumbers.includes(num)) candidates.push(num);
           }
         }
-      }
-
-      const afterMarks = useOfflineStore.getState();
-      const uncalled: number[] = [];
-      for (let n = 1; n <= 25; n++) {
-        if (!afterMarks.calledNumbers.includes(n)) uncalled.push(n);
-      }
-      if (uncalled.length > 0 && Math.random() < BOT_CALL_CHANCE) {
-        afterMarks.callNumber(uncalled[Math.floor(Math.random() * uncalled.length)]);
+        if (candidates.length === 0) continue;
+        const n = candidates[Math.floor(Math.random() * candidates.length)];
+        current.callNumber(n);
+        current.markNumber(n);
       }
 
       const latest = useOfflineStore.getState();

@@ -51,8 +51,14 @@ export default function OnlineLobbyScreen() {
       />
 
       <Button
-        title={me?.ready ? 'Waiting for others…' : 'Create My Card'}
-        disabled={!!me?.ready}
+        title={
+          me?.ready
+            ? 'Waiting for others…'
+            : room.players.length < 2
+              ? 'Waiting for a player to join…'
+              : 'Create My Card'
+        }
+        disabled={!!me?.ready || room.players.length < 2}
         onPress={() => router.push('/online/card-creation')}
       />
     </SafeAreaView>
@@ -60,8 +66,8 @@ export default function OnlineLobbyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3) },
-  label: { color: colors.textMuted, textAlign: 'center', marginTop: spacing(4), letterSpacing: 1 },
+  container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3), paddingTop: spacing(6) },
+  label: { color: colors.textMuted, textAlign: 'center', marginTop: spacing(2), letterSpacing: 1 },
   code: { color: colors.gold, fontSize: 48, fontWeight: '800', textAlign: 'center', marginBottom: spacing(4) },
   playersLabel: { color: colors.text, fontSize: font.h3, fontWeight: '700', marginBottom: spacing(1.5) },
   playerRow: {

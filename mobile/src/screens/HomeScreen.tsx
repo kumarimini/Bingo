@@ -21,8 +21,6 @@ export default function HomeScreen() {
         <Button title="Join Game" variant="secondary" onPress={() => router.push('/online/join')} />
         <View style={{ height: spacing(1.5) }} />
         <Button title="Play vs Bot" variant="secondary" onPress={() => router.push('/bot/setup')} />
-        <View style={{ height: spacing(1.5) }} />
-        <Button title="Pass & Play (Same Device)" variant="ghost" onPress={() => router.push('/host/setup')} />
       </View>
 
       <Text style={styles.footer}>3 Rounds · One Line → Two Lines → Full House</Text>

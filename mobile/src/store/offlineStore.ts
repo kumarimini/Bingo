@@ -16,23 +16,17 @@ export interface PlayerSpec {
   isBot: boolean;
 }
 
-type Mode = 'host' | 'bot';
-
 interface OfflineState {
-  mode: Mode;
-  roomCode: string;
   players: OfflinePlayer[];
   calledNumbers: number[];
   markedNumbers: number[];
   currentRound: RoundNumber;
-  activePlayerIndex: number;
   status: 'CARD_CREATION' | 'PLAYING' | 'COMPLETED';
   winners: { round: RoundNumber; playerName: string }[];
 
-  setup: (mode: Mode, roomCode: string, specs: PlayerSpec[]) => void;
+  setup: (specs: PlayerSpec[]) => void;
   placeNumber: (playerId: string, row: number, col: number) => void;
   autoFillBotCard: (playerId: string) => void;
-  setActivePlayer: (index: number) => void;
   callNumber: (number: number) => void;
   markNumber: (number: number) => void;
   claimBingo: (playerId: string) => { ok: boolean; message: string };
@@ -40,20 +34,15 @@ interface OfflineState {
 }
 
 export const useOfflineStore = create<OfflineState>((set, get) => ({
-  mode: 'host',
-  roomCode: '',
   players: [],
   calledNumbers: [],
   markedNumbers: [],
   currentRound: 1,
-  activePlayerIndex: 0,
   status: 'CARD_CREATION',
   winners: [],
 
-  setup: (mode: Mode, roomCode: string, specs: PlayerSpec[]) => {
+  setup: (specs: PlayerSpec[]) => {
     set({
-      mode,
-      roomCode,
       players: specs.map((spec, i) => ({
         id: `local-${i}`,
         name: spec.name,
@@ -65,7 +54,6 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       calledNumbers: [],
       markedNumbers: [],
       currentRound: 1,
-      activePlayerIndex: 0,
       status: 'CARD_CREATION',
       winners: [],
     });
@@ -96,8 +84,6 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       status: state.players.every((p) => p.nextNumber > 25) ? 'PLAYING' : state.status,
     }));
   },
-
-  setActivePlayer: (index: number) => set({ activePlayerIndex: index }),
 
   callNumber: (number: number) => {
     set((state) => {
@@ -139,13 +125,10 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
 
   reset: () =>
     set({
-      mode: 'host',
-      roomCode: '',
       players: [],
       calledNumbers: [],
       markedNumbers: [],
       currentRound: 1,
-      activePlayerIndex: 0,
       status: 'CARD_CREATION',
       winners: [],
     }),

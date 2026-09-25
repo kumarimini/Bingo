@@ -1,6 +1,6 @@
 # Bingo Mobile Game
 
-Social Bingo for Android & iOS, built from the v1.1 PRD: players build their own 5×5 cards by tapping boxes (numbers 1–25 assigned automatically, in order, wherever you tap), call numbers themselves, and any player can mark a called number — marking is global and syncs to everyone's card. Winning lines are classic Bingo: any row, column, or diagonal. Three rounds: One Line → Two Lines → Full House.
+Social Bingo for Android & iOS: players build their own 5×5 cards by tapping boxes (numbers 1–25 assigned automatically, in order, wherever you tap). The game starts the instant the 25th number is placed. During play, tapping any number on your own card calls and marks it in one motion ("cuts" it) — marking is global and syncs to everyone's card. Winning lines are classic Bingo: any row, column, or diagonal. Three rounds: One Line → Two Lines → Full House, each claimed automatically the moment your card satisfies it.
 
 ## Structure
 
@@ -9,9 +9,8 @@ Social Bingo for Android & iOS, built from the v1.1 PRD: players build their own
 
 ## Game modes
 
-- **Host Game / Join Game** — real multiplayer over the internet. One player hosts (a room code is generated), the other enters that code from their own phone, anywhere. Requires the server below to be running and reachable.
-- **Play vs Bot** — single player vs 1–3 AI opponents, entirely on-device, no server needed. Bots get a card instantly and play automatically (self-mark, occasionally call, auto-claim Bingo).
-- **Pass & Play (Same Device)** — local multiplayer, one device physically handed around. A room code is shown for flavor only — no networking involved.
+- **Host Game / Join Game** — real multiplayer over the internet. One player hosts (a room code is generated), the other enters that code from their own phone, anywhere. Requires the server below to be running and reachable. The "Create My Card" button stays disabled until someone else has actually joined the room.
+- **Play vs Bot** — single player vs 1–3 AI opponents, entirely on-device, no server needed. Bots get a card instantly and play automatically (touch an unmarked number from their own card, auto-claim Bingo the instant their pattern completes).
 
 ## Running locally
 
@@ -68,13 +67,13 @@ npx eas-cli@latest submit --platform android
 
 ## Core game rules implemented
 
-- Card creation: tap any empty cell to place the next sequential number (1→25); no typing.
-- Calling: any not-yet-called number (1–25) can be called; duplicates are rejected.
-- Marking: a number can only be marked once it's been called, and only once; marking is global — it appears on every player's card, at each player's own cell position for that number.
+- Card creation: tap any empty cell to place the next sequential number (1→25); no typing, no "next number" indicator — just tap through. The game starts automatically the instant the 25th number is placed.
+- Gameplay: there's no separate "call" step or Bingo button — tapping any not-yet-marked number on your own card calls and marks it in one action, globally, and it can't be tapped again. A round is claimed automatically the moment your card satisfies its pattern.
 - Winning lines: any full row, column, or diagonal counts. Round 1 = any one line, Round 2 = any two lines, Round 3 = full house (all 25).
 - The BINGO letters at the top of the game screen cross out one at a time as your card completes lines (up to 5); a straight line is drawn across the grid for each completed line, and marked numbers show a strike-through.
-- Tap-to-mark plays a short sound; completing a round plays a win sound.
-- In Host/Join Game and Play vs Bot, you only ever see your own card — opponents' and bots' cards stay hidden. In Pass & Play, a tab strip lets whoever's turn it is switch to their own card (the device is shared, so this is by design).
+- Tapping a number plays a short sound; completing a round plays a win sound.
+- You only ever see your own card — opponents' and bots' cards stay hidden.
+- A back button sits in the same top-left spot on every screen (except Home), and tapping outside a text field dismisses the keyboard on every screen that has one.
 
 ## Not yet implemented (see PRD §24, "Future Features")
 

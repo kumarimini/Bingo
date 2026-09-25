@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { Text, TextInput, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import BackButton from '../components/BackButton';
+import DismissKeyboardView from '../components/DismissKeyboardView';
 import { useOnlineStore } from '../store/onlineStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 import { ROOM_CODE_LENGTH } from '../game/config';
@@ -40,32 +41,35 @@ export default function OnlineJoinScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
-      <Text style={styles.title}>Join Game</Text>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="Your name"
-        placeholderTextColor={colors.textMuted}
-        style={styles.input}
-      />
-      <TextInput
-        value={code}
-        onChangeText={(v) => setCode(v.toUpperCase().slice(0, ROOM_CODE_LENGTH))}
-        placeholder="Room Code"
-        placeholderTextColor={colors.textMuted}
-        autoCapitalize="characters"
-        autoCorrect={false}
-        maxLength={ROOM_CODE_LENGTH}
-        style={styles.input}
-      />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Button title={loading ? 'Joining…' : 'Join'} onPress={handleJoin} disabled={loading} />
+      <DismissKeyboardView style={styles.content}>
+        <Text style={styles.title}>Join Game</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Your name"
+          placeholderTextColor={colors.textMuted}
+          style={styles.input}
+        />
+        <TextInput
+          value={code}
+          onChangeText={(v) => setCode(v.toUpperCase().slice(0, ROOM_CODE_LENGTH))}
+          placeholder="Room Code"
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={ROOM_CODE_LENGTH}
+          style={styles.input}
+        />
+        {error && <Text style={styles.error}>{error}</Text>}
+        <Button title={loading ? 'Joining…' : 'Join'} onPress={handleJoin} disabled={loading} />
+      </DismissKeyboardView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3), justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing(3), justifyContent: 'center' },
   title: { color: colors.text, fontSize: font.h1, fontWeight: '800', marginBottom: spacing(3), textAlign: 'center' },
   input: {
     backgroundColor: colors.surface,

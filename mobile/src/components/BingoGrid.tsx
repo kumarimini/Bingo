@@ -25,7 +25,7 @@ export default function BingoGrid({ grid, markedNumbers = [], onCellPress }: Pro
             return (
               <Pressable
                 key={cIdx}
-                disabled={!onCellPress || !isEmpty}
+                disabled={!onCellPress || isMarked}
                 onPress={() => onCellPress?.(rIdx, cIdx)}
                 style={[styles.cell, isEmpty ? styles.cellEmpty : styles.cellFilled, isMarked && styles.cellMarked]}
               >
