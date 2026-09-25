@@ -62,6 +62,14 @@ export function checkRoundWin(
   return grid.every((row) => row.every((cell) => cell !== null && marked.has(cell)));
 }
 
+// Excludes visually ambiguous characters (0/O, 1/I) to keep codes easy to read and re-type.
+const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_LENGTH = 5;
+
 export function generateRoomCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  let code = '';
+  for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
+    code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
+  }
+  return code;
 }

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import BackButton from '../components/BackButton';
 import BingoGrid from '../components/BingoGrid';
 import { useOfflineStore } from '../store/offlineStore';
 import { colors, spacing, font } from '../theme/theme';
@@ -33,7 +35,8 @@ export default function OfflineCardCreationScreen() {
 
   if (!revealed) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+        <BackButton />
         <View style={styles.handoff}>
           <Text style={styles.handoffTitle}>Pass the device to</Text>
           <Text style={styles.handoffName}>{player.name}</Text>
@@ -44,7 +47,8 @@ export default function OfflineCardCreationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
       <Text style={styles.title}>CREATE YOUR CARD</Text>
       <Text style={styles.name}>{player.name}</Text>
 

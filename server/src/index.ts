@@ -40,6 +40,7 @@ io.on('connection', (socket: Socket) => {
   socket.on(
     EVENTS.JOIN_ROOM,
     ({ code, playerName }: { code: string; playerName: string }, cb) => {
+      code = (code || '').trim().toUpperCase();
       const room = getRoom(code);
       if (!room) return cb?.({ ok: false, error: 'Room not found' });
       const playerId = uuid();

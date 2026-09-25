@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Modal } from 'react-native';
+import { View, Text, StyleSheet, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import BackButton from '../components/BackButton';
 import BingoGrid from '../components/BingoGrid';
 import NumberCallPad from '../components/NumberCallPad';
 import { useOnlineStore } from '../store/onlineStore';
@@ -41,7 +43,8 @@ export default function OnlineGameScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
       <Text style={styles.roundLabel}>ROUND {room.currentRound} · {roundLabel(room.currentRound)}</Text>
 
       <View style={styles.playersRow}>

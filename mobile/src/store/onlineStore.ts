@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { Socket } from 'socket.io-client';
 import { getSocket } from '../game/socket';
 import { EVENTS } from '../game/events';
+import { SOCKET_ACK_TIMEOUT_MS } from '../game/config';
 import { RoomState } from '../game/types';
 
 interface LastCall {
@@ -13,6 +15,34 @@ interface BingoResult {
   message: string;
   round?: number;
   playerName?: string;
+}
+
+interface AckResult {
+  ok: boolean;
+  error?: string;
+}
+
+function emitWithTimeout<T extends AckResult>(
+  socket: Socket,
+  event: string,
+  payload: unknown,
+  timeoutMessage: string
+): Promise<T> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve({ ok: false, error: timeoutMessage } as T);
+    }, SOCKET_ACK_TIMEOUT_MS);
+
+    socket.emit(event, payload, (res: T) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(res);
+    });
+  });
 }
 
 interface OnlineState {
@@ -46,10 +76,15 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
 
   connect: () => {
     const socket = getSocket();
+    set({ connected: socket.connected });
+
     if (socket.hasListeners(EVENTS.ROOM_UPDATE)) return;
 
-    socket.on('connect', () => set({ connected: true }));
+    socket.on('connect', () => set({ connected: true, error: null }));
     socket.on('disconnect', () => set({ connected: false }));
+    socket.on('connect_error', (err: Error) => {
+      set({ error: `Can't reach the server (${err.message}). Check the server is running and reachable.` });
+    });
 
     socket.on(EVENTS.ROOM_UPDATE, (room: RoomState) => set({ room }));
 
@@ -70,31 +105,35 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
     });
   },
 
-  createRoom: (playerName: string) =>
-    new Promise((resolve) => {
-      const socket = getSocket();
-      socket.emit(EVENTS.CREATE_ROOM, { playerName }, (res: any) => {
-        if (res.ok) {
-          set({ room: res.room, playerId: res.playerId });
-          resolve({ ok: true });
-        } else {
-          resolve({ ok: false, error: res.error });
-        }
-      });
-    }),
+  createRoom: async (playerName: string) => {
+    const socket = getSocket();
+    const res = await emitWithTimeout<{ ok: boolean; room?: RoomState; playerId?: string; error?: string }>(
+      socket,
+      EVENTS.CREATE_ROOM,
+      { playerName },
+      "Couldn't reach the server. Check your connection and try again."
+    );
+    if (res.ok && res.room && res.playerId) {
+      set({ room: res.room, playerId: res.playerId });
+      return { ok: true };
+    }
+    return { ok: false, error: res.error };
+  },
 
-  joinRoom: (code: string, playerName: string) =>
-    new Promise((resolve) => {
-      const socket = getSocket();
-      socket.emit(EVENTS.JOIN_ROOM, { code, playerName }, (res: any) => {
-        if (res.ok) {
-          set({ room: res.room, playerId: res.playerId });
-          resolve({ ok: true });
-        } else {
-          resolve({ ok: false, error: res.error });
-        }
-      });
-    }),
+  joinRoom: async (code: string, playerName: string) => {
+    const socket = getSocket();
+    const res = await emitWithTimeout<{ ok: boolean; room?: RoomState; playerId?: string; error?: string }>(
+      socket,
+      EVENTS.JOIN_ROOM,
+      { code, playerName },
+      "Couldn't reach the server. Check your connection and try again."
+    );
+    if (res.ok && res.room && res.playerId) {
+      set({ room: res.room, playerId: res.playerId });
+      return { ok: true };
+    }
+    return { ok: false, error: res.error };
+  },
 
   placeNumber: (row: number, col: number) => {
     const { room, playerId } = get();

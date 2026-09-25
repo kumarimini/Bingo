@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import BackButton from '../components/BackButton';
 import { useOnlineStore } from '../store/onlineStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
@@ -16,12 +18,20 @@ export default function OnlineLobbyScreen() {
     }
   }, [room?.status]);
 
-  if (!room) return null;
+  if (!room) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+        <BackButton />
+        <Text style={styles.label}>No active room. Go back and create or join one.</Text>
+      </SafeAreaView>
+    );
+  }
 
   const me = room.players.find((p) => p.id === playerId);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
       <Text style={styles.label}>ROOM CODE</Text>
       <Text style={styles.code}>{room.code}</Text>
 

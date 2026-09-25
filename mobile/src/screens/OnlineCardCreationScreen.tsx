@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import BingoGrid from '../components/BingoGrid';
+import BackButton from '../components/BackButton';
 import { useOnlineStore } from '../store/onlineStore';
 import { colors, spacing, font } from '../theme/theme';
 
@@ -24,7 +26,8 @@ export default function OnlineCardCreationScreen() {
   const complete = me.nextNumber > 25;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
       <Text style={styles.title}>CREATE YOUR CARD</Text>
 
       <View style={styles.nextBox}>

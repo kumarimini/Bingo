@@ -5,7 +5,12 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(SERVER_URL, { transports: ['websocket'], autoConnect: true });
+    socket = io(SERVER_URL, {
+      transports: ['websocket'],
+      autoConnect: true,
+      reconnectionAttempts: 10,
+      timeout: 8000,
+    });
   }
   return socket;
 }

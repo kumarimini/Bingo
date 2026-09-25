@@ -29,7 +29,7 @@ npm start
 
 Then press `i` for iOS simulator or `a` for Android emulator (or scan the QR code with Expo Go on a physical device).
 
-**Important — server URL for physical devices:** the app defaults to `http://localhost:4000`, which only works for a simulator running on the same machine as the server. For a real phone, find your computer's LAN IP (e.g. `192.168.1.20`) and run:
+**Important — server URL:** the app defaults to `http://localhost:4000` on iOS (works out of the box for the iOS simulator) and `http://10.0.2.2:4000` on Android (the special alias an Android emulator uses to reach your machine's localhost). Neither works from a real phone. For a physical device, find your computer's LAN IP (e.g. `192.168.1.20`) and run:
 
 ```bash
 EXPO_PUBLIC_SERVER_URL=http://192.168.1.20:4000 npm start

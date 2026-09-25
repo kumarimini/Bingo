@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import BackButton from '../components/BackButton';
 import { useOfflineStore } from '../store/offlineStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
@@ -30,7 +32,8 @@ export default function OfflineSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
       <Text style={styles.title}>Pass & Play</Text>
       <Text style={styles.subtitle}>Each player creates a card on this device, then passes it along.</Text>
 

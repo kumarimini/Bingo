@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
+import BackButton from '../components/BackButton';
 import { useOfflineStore } from '../store/offlineStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
@@ -21,7 +23,8 @@ export default function OfflineCompleteScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+      <BackButton />
       <Text style={styles.title}>🏁 GAME COMPLETE</Text>
 
       <View style={styles.results}>
