@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,11 +12,34 @@ export default function OfflineCardCreationScreen() {
   const router = useRouter();
   const players = useOfflineStore((s) => s.players);
   const placeNumber = useOfflineStore((s) => s.placeNumber);
+  const autoFillBotCard = useOfflineStore((s) => s.autoFillBotCard);
   const [turnIndex, setTurnIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
+  // Bots never need a "pass the device" turn — fill their card instantly and
+  // skip straight to the next human, or to the game screen if none remain.
+  const advance = (fromIndex: number) => {
+    let idx = fromIndex;
+    while (idx < players.length && players[idx].isBot) {
+      autoFillBotCard(players[idx].id);
+      idx++;
+    }
+    if (idx >= players.length) {
+      router.replace('/offline/game');
+    } else {
+      setTurnIndex(idx);
+      setRevealed(false);
+    }
+  };
+
+  useEffect(() => {
+    advance(0);
+    // Only ever needs to run once, on mount, in case the very first player happens to be a bot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const player = players[turnIndex];
-  if (!player) return null;
+  if (!player || player.isBot) return null;
 
   const complete = player.nextNumber > 25;
 
@@ -24,14 +47,7 @@ export default function OfflineCardCreationScreen() {
     placeNumber(player.id, row, col);
   };
 
-  const goNext = () => {
-    if (turnIndex + 1 < players.length) {
-      setTurnIndex(turnIndex + 1);
-      setRevealed(false);
-    } else {
-      router.replace('/offline/game');
-    }
-  };
+  const goNext = () => advance(turnIndex + 1);
 
   if (!revealed) {
     return (

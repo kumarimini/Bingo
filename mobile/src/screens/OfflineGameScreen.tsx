@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,12 +7,15 @@ import BackButton from '../components/BackButton';
 import BingoGrid from '../components/BingoGrid';
 import NumberCallPad from '../components/NumberCallPad';
 import { useOfflineStore } from '../store/offlineStore';
+import { useBotAutoplay } from '../game/useBotAutoplay';
 import { roundLabel } from '../game/logic';
 import { colors, spacing, font, radius } from '../theme/theme';
 
 export default function OfflineGameScreen() {
   const router = useRouter();
-  const { players, calledNumbers, markedNumbers, currentRound, status } = useOfflineStore();
+  useBotAutoplay();
+
+  const { players, calledNumbers, markedNumbers, currentRound, status, winners } = useOfflineStore();
   const callNumber = useOfflineStore((s) => s.callNumber);
   const markNumber = useOfflineStore((s) => s.markNumber);
   const claimBingo = useOfflineStore((s) => s.claimBingo);
@@ -20,6 +23,16 @@ export default function OfflineGameScreen() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [padOpen, setPadOpen] = useState(false);
   const [resultMsg, setResultMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const seenWinnersRef = useRef(0);
+
+  // Picks up wins from anyone — a human tapping Bingo or a bot auto-claiming.
+  useEffect(() => {
+    if (winners.length > seenWinnersRef.current) {
+      const latest = winners[winners.length - 1];
+      seenWinnersRef.current = winners.length;
+      setResultMsg({ ok: true, text: `${latest.playerName} completed ROUND ${latest.round}.` });
+    }
+  }, [winners]);
 
   const activePlayer = players[activeIdx];
   const lastCalled = calledNumbers[calledNumbers.length - 1];
@@ -36,13 +49,15 @@ export default function OfflineGameScreen() {
 
   const handleBingo = () => {
     const res = claimBingo(activePlayer.id);
-    setResultMsg({ ok: res.ok, text: res.message });
+    if (!res.ok) {
+      setResultMsg({ ok: false, text: res.message });
+    }
+    // A successful claim is picked up by the winners-watching effect above.
   };
 
   const closeResult = () => {
-    const wasWin = resultMsg?.ok;
     setResultMsg(null);
-    if (wasWin && useOfflineStore.getState().status === 'COMPLETED') {
+    if (useOfflineStore.getState().status === 'COMPLETED') {
       router.replace('/offline/complete');
     }
   };
@@ -55,13 +70,20 @@ export default function OfflineGameScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs}>
         {players.map((p, i) => (
           <Pressable key={p.id} onPress={() => setActiveIdx(i)} style={[styles.tab, i === activeIdx && styles.tabActive]}>
-            <Text style={[styles.tabText, i === activeIdx && styles.tabTextActive]}>{p.name}</Text>
+            <Text style={[styles.tabText, i === activeIdx && styles.tabTextActive]}>
+              {p.isBot ? '🤖 ' : ''}
+              {p.name}
+            </Text>
             {p.roundsWon.length > 0 && <Text style={styles.tabWins}> 🏆{p.roundsWon.length}</Text>}
           </Pressable>
         ))}
       </ScrollView>
 
-      <BingoGrid grid={activePlayer.grid} markedNumbers={markedNumbers} onCellPress={handleCellPress} />
+      <BingoGrid
+        grid={activePlayer.grid}
+        markedNumbers={markedNumbers}
+        onCellPress={activePlayer.isBot ? undefined : handleCellPress}
+      />
 
       <View style={styles.lastCalled}>
         <Text style={styles.lastCalledLabel}>Last Called</Text>
@@ -71,7 +93,13 @@ export default function OfflineGameScreen() {
       <View style={styles.actions}>
         <Button title="Call Number" onPress={() => setPadOpen(true)} style={{ flex: 1 }} />
         <View style={{ width: spacing(1.5) }} />
-        <Button title="Bingo" variant="danger" onPress={handleBingo} style={{ flex: 1 }} />
+        <Button
+          title="Bingo"
+          variant="danger"
+          onPress={handleBingo}
+          disabled={activePlayer.isBot}
+          style={{ flex: 1 }}
+        />
       </View>
 
       <NumberCallPad

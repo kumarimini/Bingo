@@ -16,11 +16,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.actions}>
-        <Button title="Play Online" onPress={() => router.push('/online/create')} />
+        <Button title="Host Game" onPress={() => router.push('/host/setup')} />
         <View style={{ height: spacing(1.5) }} />
-        <Button title="Join Room" variant="secondary" onPress={() => router.push('/online/join')} />
-        <View style={{ height: spacing(1.5) }} />
-        <Button title="Play Offline (Pass & Play)" variant="ghost" onPress={() => router.push('/offline/setup')} />
+        <Button title="Play vs Bot" variant="secondary" onPress={() => router.push('/bot/setup')} />
       </View>
 
       <Text style={styles.footer}>3 Rounds · One Line → Two Lines → Full House</Text>

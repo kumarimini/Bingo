@@ -4,6 +4,23 @@ export function emptyGrid(): Grid {
   return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
 }
 
+/** A complete, valid 5x5 card with 1-25 placed in random cells — used to instantly fill a bot's card. */
+export function randomFilledGrid(): Grid {
+  const numbers = Array.from({ length: CARD_TOTAL }, (_, i) => i + 1);
+  for (let i = numbers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+  const grid = emptyGrid();
+  let idx = 0;
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      grid[r][c] = numbers[idx++];
+    }
+  }
+  return grid;
+}
+
 export function isCardComplete(grid: Grid, nextNumber: number): boolean {
   return nextNumber > CARD_TOTAL;
 }

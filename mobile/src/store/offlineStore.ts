@@ -1,16 +1,26 @@
 import { create } from 'zustand';
-import { emptyGrid, checkRoundWin } from '../game/logic';
+import { emptyGrid, randomFilledGrid, checkRoundWin } from '../game/logic';
 import { Grid, RoundNumber } from '../game/types';
 
 export interface OfflinePlayer {
   id: string;
   name: string;
+  isBot: boolean;
   grid: Grid;
   nextNumber: number;
   roundsWon: RoundNumber[];
 }
 
+export interface PlayerSpec {
+  name: string;
+  isBot: boolean;
+}
+
+type Mode = 'host' | 'bot';
+
 interface OfflineState {
+  mode: Mode;
+  roomCode: string;
   players: OfflinePlayer[];
   calledNumbers: number[];
   markedNumbers: number[];
@@ -19,8 +29,9 @@ interface OfflineState {
   status: 'CARD_CREATION' | 'PLAYING' | 'COMPLETED';
   winners: { round: RoundNumber; playerName: string }[];
 
-  setup: (names: string[]) => void;
+  setup: (mode: Mode, roomCode: string, specs: PlayerSpec[]) => void;
   placeNumber: (playerId: string, row: number, col: number) => void;
+  autoFillBotCard: (playerId: string) => void;
   setActivePlayer: (index: number) => void;
   callNumber: (number: number) => void;
   markNumber: (number: number) => void;
@@ -29,6 +40,8 @@ interface OfflineState {
 }
 
 export const useOfflineStore = create<OfflineState>((set, get) => ({
+  mode: 'host',
+  roomCode: '',
   players: [],
   calledNumbers: [],
   markedNumbers: [],
@@ -37,11 +50,14 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   status: 'CARD_CREATION',
   winners: [],
 
-  setup: (names: string[]) => {
+  setup: (mode: Mode, roomCode: string, specs: PlayerSpec[]) => {
     set({
-      players: names.map((name, i) => ({
+      mode,
+      roomCode,
+      players: specs.map((spec, i) => ({
         id: `local-${i}`,
-        name,
+        name: spec.name,
+        isBot: spec.isBot,
         grid: emptyGrid(),
         nextNumber: 1,
         roundsWon: [],
@@ -68,6 +84,17 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       const allComplete = players.every((p) => p.nextNumber > 25);
       return { players, status: allComplete ? 'PLAYING' : state.status };
     });
+  },
+
+  autoFillBotCard: (playerId: string) => {
+    set((state) => ({
+      players: state.players.map((p) =>
+        p.id === playerId && p.nextNumber === 1 ? { ...p, grid: randomFilledGrid(), nextNumber: 26 } : p
+      ),
+    }));
+    set((state) => ({
+      status: state.players.every((p) => p.nextNumber > 25) ? 'PLAYING' : state.status,
+    }));
   },
 
   setActivePlayer: (index: number) => set({ activePlayerIndex: index }),
@@ -112,6 +139,8 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
 
   reset: () =>
     set({
+      mode: 'host',
+      roomCode: '',
       players: [],
       calledNumbers: [],
       markedNumbers: [],
