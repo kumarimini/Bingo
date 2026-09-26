@@ -6,9 +6,8 @@ import Button from '../components/Button';
 import BackButton from '../components/BackButton';
 import EmptyState from '../components/EmptyState';
 import BingoGrid from '../components/BingoGrid';
-import BingoLettersHeader from '../components/BingoLettersHeader';
 import { useOnlineStore } from '../store/onlineStore';
-import { checkRoundWin, countCompletedLines } from '../game/logic';
+import { checkBingo, computeScore } from '../game/logic';
 import { playTapSound, playWinSound } from '../game/sounds';
 import { colors, spacing, font, radius } from '../theme/theme';
 
@@ -35,7 +34,7 @@ export default function OnlineGameScreen() {
 
   const me = room?.players.find((p) => p.id === playerId);
 
-  // Auto-claim the instant my own card satisfies the current round's pattern.
+  // Auto-claim the instant my own card completes a line.
   // claimBingo() is fire-and-forget over the network, so without this guard a
   // second NUMBER_MARKED broadcast arriving before the server's response to
   // the first claim would fire a redundant claim — which the server (reading
@@ -47,7 +46,7 @@ export default function OnlineGameScreen() {
     if (!room || !me) return;
     if (me.roundsWon.includes(room.currentRound)) return;
     if (attemptedRoundRef.current === room.currentRound) return;
-    if (checkRoundWin(me.grid, room.markedNumbers, room.currentRound)) {
+    if (checkBingo(me.grid, room.markedNumbers)) {
       attemptedRoundRef.current = room.currentRound;
       claimBingo();
     }
@@ -56,12 +55,12 @@ export default function OnlineGameScreen() {
 
   if (!room || !playerId || !me) return <EmptyState message="No active game. Go back and create or join a room." />;
 
-  const crossedLetters = Math.min(5, countCompletedLines(me.grid, room.markedNumbers));
+  const score = computeScore(me.grid, room.markedNumbers);
   const disconnectedOpponent = room.players.find((p) => p.id !== playerId && !p.connected);
 
   const handleCellPress = (row: number, col: number) => {
     const num = me.grid[row][col];
-    if (num === null) return;
+    if (num === 0) return;
     if (room.markedNumbers.includes(num)) return;
     callNumber(num);
     markNumber(num);
@@ -71,13 +70,16 @@ export default function OnlineGameScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
-      <BingoLettersHeader crossedCount={crossedLetters} />
-      <Text style={styles.roundLabel}>ROUND {room.currentRound}</Text>
+      <Text style={styles.roundLabel}>
+        Round {room.currentRound} / {room.totalRounds}
+      </Text>
       {disconnectedOpponent && (
         <Text style={styles.disconnectedBanner}>⚠️ {disconnectedOpponent.name} disconnected</Text>
       )}
 
       <BingoGrid grid={me.grid} markedNumbers={room.markedNumbers} onCellPress={handleCellPress} />
+
+      <Text style={styles.score}>Score: {score}</Text>
 
       <Modal visible={!!bingoResult} transparent animationType="fade">
         <View style={styles.resultBackdrop}>
@@ -95,6 +97,7 @@ export default function OnlineGameScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing(2.5), paddingTop: spacing(6) },
   roundLabel: { color: colors.gold, fontWeight: '700', textAlign: 'center', marginBottom: spacing(2), letterSpacing: 1 },
+  score: { color: colors.gold, fontSize: font.h3, fontWeight: '800', textAlign: 'center', marginTop: spacing(2) },
   disconnectedBanner: { color: colors.danger, textAlign: 'center', marginBottom: spacing(1.5), fontSize: font.small },
   resultBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: spacing(3) },
   resultCard: { backgroundColor: colors.bgAlt, borderRadius: radius.lg, padding: spacing(3), width: '100%', alignItems: 'center' },

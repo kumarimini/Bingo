@@ -1,4 +1,5 @@
 import { createAudioPlayer, AudioPlayer } from 'expo-audio';
+import { useSettingsStore } from '../store/settingsStore';
 
 let tapPlayer: AudioPlayer | null = null;
 let winPlayer: AudioPlayer | null = null;
@@ -14,6 +15,7 @@ function getWinPlayer(): AudioPlayer {
 }
 
 export function playTapSound() {
+  if (!useSettingsStore.getState().soundEnabled) return;
   try {
     const player = getTapPlayer();
     player.seekTo(0);
@@ -24,6 +26,7 @@ export function playTapSound() {
 }
 
 export function playWinSound() {
+  if (!useSettingsStore.getState().soundEnabled) return;
   try {
     const player = getWinPlayer();
     player.seekTo(0);

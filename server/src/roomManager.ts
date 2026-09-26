@@ -1,9 +1,9 @@
-import { RoomState, Player, RoundNumber } from './types';
-import { emptyGrid, generateRoomCode } from './gameLogic';
+import { RoomState, Player } from './types';
+import { generateCard, generateRoomCode } from './gameLogic';
 
 const rooms = new Map<string, RoomState>();
 
-export function createRoom(hostId: string, hostName: string): RoomState {
+export function createRoom(hostId: string, hostName: string, maxPlayers: number, totalRounds: number): RoomState {
   let code = generateRoomCode();
   while (rooms.has(code)) code = generateRoomCode();
 
@@ -11,10 +11,9 @@ export function createRoom(hostId: string, hostName: string): RoomState {
     id: hostId,
     socketId: null,
     name: hostName,
-    grid: emptyGrid(),
-    nextNumber: 1,
-    ready: false,
+    grid: generateCard(),
     connected: true,
+    totalScore: 0,
     roundsWon: [],
   };
 
@@ -22,10 +21,12 @@ export function createRoom(hostId: string, hostName: string): RoomState {
     code,
     hostId,
     status: 'WAITING',
+    maxPlayers,
+    totalRounds,
+    currentRound: 1,
     players: [host],
     calledNumbers: [],
     markedNumbers: [],
-    currentRound: 1,
     winners: [],
     createdAt: Date.now(),
   };
@@ -42,16 +43,16 @@ export function joinRoom(code: string, playerId: string, playerName: string): Ro
   const room = rooms.get(code);
   if (!room) return undefined;
   if (room.status !== 'WAITING') return undefined;
+  if (room.players.length >= room.maxPlayers) return undefined;
   if (room.players.some((p) => p.id === playerId)) return room;
 
   room.players.push({
     id: playerId,
     socketId: null,
     name: playerName,
-    grid: emptyGrid(),
-    nextNumber: 1,
-    ready: false,
+    grid: generateCard(),
     connected: true,
+    totalScore: 0,
     roundsWon: [],
   });
   return room;
@@ -78,9 +79,4 @@ export function findRoomBySocket(socketId: string): RoomState | undefined {
     if (room.players.some((p) => p.socketId === socketId)) return room;
   }
   return undefined;
-}
-
-export function resetForNextRound(room: RoomState, nextRound: RoundNumber) {
-  room.currentRound = nextRound;
-  room.status = nextRound === 1 ? 'ROUND_1' : nextRound === 2 ? 'ROUND_2' : 'ROUND_3';
 }

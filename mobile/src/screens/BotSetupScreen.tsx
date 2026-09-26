@@ -6,22 +6,23 @@ import Button from '../components/Button';
 import BackButton from '../components/BackButton';
 import DismissKeyboardView from '../components/DismissKeyboardView';
 import { useOfflineStore } from '../store/offlineStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
 export default function BotSetupScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const setup = useOfflineStore((s) => s.setup);
+  const savedName = useSettingsStore((s) => s.name);
+  const setName = useSettingsStore((s) => s.setName);
+  const [name, setLocalName] = useState(savedName === 'Player' ? '' : savedName);
+  const setupBotGame = useOfflineStore((s) => s.setupBotGame);
 
   const trimmedName = name.trim();
 
   const start = () => {
     if (!trimmedName) return;
-    setup([
-      { name: trimmedName, isBot: false },
-      { name: 'Bot', isBot: true },
-    ]);
-    router.push('/offline/card-creation');
+    setName(trimmedName);
+    setupBotGame(trimmedName);
+    router.push('/offline/game');
   };
 
   return (
@@ -36,7 +37,7 @@ export default function BotSetupScreen() {
 
         <TextInput
           value={name}
-          onChangeText={setName}
+          onChangeText={setLocalName}
           placeholder="Your name"
           placeholderTextColor={colors.textMuted}
           style={styles.input}

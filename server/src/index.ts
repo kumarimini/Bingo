@@ -9,12 +9,11 @@ import {
   getRoom,
   joinRoom,
   findRoomBySocket,
-  resetForNextRound,
   removeRoomIfEmpty,
   sweepStaleRooms,
 } from './roomManager';
-import { placeNumber, isCardComplete, validateCard, checkRoundWin } from './gameLogic';
-import { RoundNumber } from './types';
+import { generateCard, checkBingo, computeScore, MAX_NUMBER } from './gameLogic';
+import { MIN_PLAYERS, MAX_PLAYERS_LIMIT, MIN_ROUNDS, MAX_ROUNDS_LIMIT } from './types';
 
 const app = express();
 app.use(cors());
@@ -30,10 +29,8 @@ function broadcastRoom(code: string) {
   io.to(code).emit(EVENTS.ROOM_UPDATE, room);
 }
 
-function allPlayersReady(code: string): boolean {
-  const room = getRoom(code);
-  if (!room) return false;
-  return room.players.length >= 1 && room.players.every((p) => p.ready);
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, Math.floor(n) || lo));
 }
 
 // A socket that creates or joins a second room (e.g. the player backed out to
@@ -47,14 +44,22 @@ function leaveOtherRooms(socket: Socket) {
 }
 
 io.on('connection', (socket: Socket) => {
-  socket.on(EVENTS.CREATE_ROOM, ({ playerName }: { playerName: string }, cb) => {
-    leaveOtherRooms(socket);
-    const playerId = uuid();
-    const room = createRoom(playerId, playerName || 'Player');
-    room.players[0].socketId = socket.id;
-    socket.join(room.code);
-    cb?.({ ok: true, room, playerId });
-  });
+  socket.on(
+    EVENTS.CREATE_ROOM,
+    ({ playerName, maxPlayers, totalRounds }: { playerName: string; maxPlayers?: number; totalRounds?: number }, cb) => {
+      leaveOtherRooms(socket);
+      const playerId = uuid();
+      const room = createRoom(
+        playerId,
+        playerName || 'Player',
+        clamp(maxPlayers ?? MIN_PLAYERS, MIN_PLAYERS, MAX_PLAYERS_LIMIT),
+        clamp(totalRounds ?? MIN_ROUNDS, MIN_ROUNDS, MAX_ROUNDS_LIMIT)
+      );
+      room.players[0].socketId = socket.id;
+      socket.join(room.code);
+      cb?.({ ok: true, room, playerId });
+    }
+  );
 
   socket.on(
     EVENTS.JOIN_ROOM,
@@ -62,6 +67,8 @@ io.on('connection', (socket: Socket) => {
       code = (code || '').trim().toUpperCase();
       const room = getRoom(code);
       if (!room) return cb?.({ ok: false, error: 'Room not found' });
+      if (room.status !== 'WAITING') return cb?.({ ok: false, error: 'Game already started' });
+      if (room.players.length >= room.maxPlayers) return cb?.({ ok: false, error: 'Room is full' });
       const playerId = uuid();
       const updated = joinRoom(code, playerId, playerName || 'Player');
       if (!updated) return cb?.({ ok: false, error: 'Cannot join room' });
@@ -74,46 +81,35 @@ io.on('connection', (socket: Socket) => {
     }
   );
 
-  socket.on(
-    EVENTS.PLACE_NUMBER,
-    ({ code, playerId, row, col }: { code: string; playerId: string; row: number; col: number }, cb) => {
-      const room = getRoom(code);
-      if (!room) return cb?.({ ok: false, error: 'Room not found' });
-      const player = room.players.find((p) => p.id === playerId);
-      if (!player) return cb?.({ ok: false, error: 'Player not found' });
-      if (room.status !== 'WAITING' && room.status !== 'CARD_CREATION') {
-        return cb?.({ ok: false, error: 'Card creation closed' });
-      }
-      room.status = 'CARD_CREATION';
-      const result = placeNumber(player, row, col);
-      if (!result.ok) return cb?.({ ok: false, error: result.reason });
+  socket.on(EVENTS.START_GAME, ({ code, playerId }: { code: string; playerId: string }, cb) => {
+    const room = getRoom(code);
+    if (!room) return cb?.({ ok: false, error: 'Room not found' });
+    if (room.hostId !== playerId) return cb?.({ ok: false, error: 'Only the host can start the game' });
+    if (room.status !== 'WAITING') return cb?.({ ok: false, error: 'Game already started' });
+    if (room.players.length < MIN_PLAYERS) return cb?.({ ok: false, error: `Need at least ${MIN_PLAYERS} players` });
 
-      if (isCardComplete(player) && validateCard(player.grid)) {
-        player.ready = true;
-        io.to(code).emit(EVENTS.PLAYER_READY, { playerId: player.id });
+    room.players.forEach((p) => (p.grid = generateCard()));
+    room.status = 'PLAYING';
+    room.currentRound = 1;
+    room.calledNumbers = [];
+    room.markedNumbers = [];
 
-        if (allPlayersReady(code)) {
-          room.status = 'ROUND_1';
-          room.currentRound = 1;
-          io.to(code).emit(EVENTS.GAME_START, { room });
-          io.to(code).emit(EVENTS.ROUND_START, { round: 1 });
-        }
-      }
-      cb?.({ ok: true });
-      broadcastRoom(code);
-    }
-  );
+    io.to(code).emit(EVENTS.GAME_START, { room });
+    io.to(code).emit(EVENTS.ROUND_START, { round: 1 });
+    cb?.({ ok: true });
+    broadcastRoom(code);
+  });
 
   socket.on(
     EVENTS.CALL_NUMBER,
     ({ code, playerId, number }: { code: string; playerId: string; number: number }, cb) => {
       const room = getRoom(code);
       if (!room) return cb?.({ ok: false, error: 'Room not found' });
-      if (!room.status.startsWith('ROUND_')) return cb?.({ ok: false, error: 'Game not active' });
+      if (room.status !== 'PLAYING') return cb?.({ ok: false, error: 'Game not active' });
       if (room.calledNumbers.includes(number)) {
         return cb?.({ ok: false, error: 'Number already called' });
       }
-      if (number < 1 || number > 25) return cb?.({ ok: false, error: 'Invalid number' });
+      if (number < 1 || number > MAX_NUMBER) return cb?.({ ok: false, error: 'Invalid number' });
 
       room.calledNumbers.push(number);
       const caller = room.players.find((p) => p.id === playerId);
@@ -128,7 +124,7 @@ io.on('connection', (socket: Socket) => {
     ({ code, number }: { code: string; number: number }, cb) => {
       const room = getRoom(code);
       if (!room) return cb?.({ ok: false, error: 'Room not found' });
-      if (!room.status.startsWith('ROUND_')) return cb?.({ ok: false, error: 'Game not active' });
+      if (room.status !== 'PLAYING') return cb?.({ ok: false, error: 'Game not active' });
       if (!room.calledNumbers.includes(number)) {
         return cb?.({ ok: false, error: 'Number not called yet' });
       }
@@ -147,7 +143,7 @@ io.on('connection', (socket: Socket) => {
     if (!room) return cb?.({ ok: false, error: 'Room not found' });
     const player = room.players.find((p) => p.id === playerId);
     if (!player) return cb?.({ ok: false, error: 'Player not found' });
-    if (!room.status.startsWith('ROUND_')) return cb?.({ ok: false, error: 'Game not active' });
+    if (room.status !== 'PLAYING') return cb?.({ ok: false, error: 'Game not active' });
 
     const round = room.currentRound;
     if (player.roundsWon.includes(round)) {
@@ -155,24 +151,27 @@ io.on('connection', (socket: Socket) => {
       return cb?.({ ok: false });
     }
 
-    const won = checkRoundWin(player.grid, room.markedNumbers, round);
+    const won = checkBingo(player.grid, room.markedNumbers);
     if (!won) {
-      io.to(socket.id).emit(EVENTS.BINGO_INVALID, { reason: 'Pattern not complete' });
+      io.to(socket.id).emit(EVENTS.BINGO_INVALID, { reason: 'No completed line yet' });
       return cb?.({ ok: false });
     }
 
     player.roundsWon.push(round);
+    player.totalScore += computeScore(player.grid, room.markedNumbers);
     room.winners.push({ round, playerId: player.id, playerName: player.name });
     io.to(code).emit(EVENTS.BINGO_VALID, { playerId: player.id, playerName: player.name, round });
     io.to(code).emit(EVENTS.ROUND_END, { round, winner: player.name });
 
-    if (round === 3) {
+    if (round >= room.totalRounds) {
       room.status = 'COMPLETED';
-      io.to(code).emit(EVENTS.GAME_END, { winners: room.winners });
+      io.to(code).emit(EVENTS.GAME_END, { winners: room.winners, players: room.players });
     } else {
-      const next = (round + 1) as RoundNumber;
-      resetForNextRound(room, next);
-      io.to(code).emit(EVENTS.ROUND_START, { round: next });
+      room.currentRound = round + 1;
+      room.players.forEach((p) => (p.grid = generateCard()));
+      room.calledNumbers = [];
+      room.markedNumbers = [];
+      io.to(code).emit(EVENTS.ROUND_START, { round: room.currentRound });
     }
 
     cb?.({ ok: true });

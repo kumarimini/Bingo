@@ -1,51 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Text, TextInput, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
 import BackButton from '../components/BackButton';
 import DismissKeyboardView from '../components/DismissKeyboardView';
-import { useOnlineStore } from '../store/onlineStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
-export default function OnlineCreateScreen() {
+export default function EditNameScreen() {
   const router = useRouter();
-  const connect = useOnlineStore((s) => s.connect);
-  const createRoom = useOnlineStore((s) => s.createRoom);
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const currentName = useSettingsStore((s) => s.name);
+  const setName = useSettingsStore((s) => s.setName);
+  const [name, setLocalName] = useState(currentName);
 
-  useEffect(() => {
-    connect();
-  }, []);
-
-  const handleCreate = async () => {
-    setError(null);
-    setLoading(true);
-    const res = await createRoom(name.trim() || 'Player');
-    setLoading(false);
-    if (res.ok) {
-      router.push('/online/lobby');
-    } else {
-      setError(res.error ?? 'Could not create room');
-    }
+  const save = () => {
+    setName(name);
+    router.back();
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
       <DismissKeyboardView style={styles.content}>
-        <Text style={styles.title}>Create Game</Text>
+        <Text style={styles.title}>Edit Name</Text>
         <TextInput
           value={name}
-          onChangeText={setName}
+          onChangeText={setLocalName}
           placeholder="Your name"
           placeholderTextColor={colors.textMuted}
           style={styles.input}
+          autoFocus
         />
-        {error && <Text style={styles.error}>{error}</Text>}
-        <Button title={loading ? 'Creating…' : 'Create Room'} onPress={handleCreate} disabled={loading} />
+        <Button title="Save" onPress={save} disabled={!name.trim()} />
       </DismissKeyboardView>
     </SafeAreaView>
   );
@@ -63,5 +50,4 @@ const styles = StyleSheet.create({
     fontSize: font.body,
     marginBottom: spacing(2),
   },
-  error: { color: colors.danger, marginBottom: spacing(1.5), textAlign: 'center' },
 });

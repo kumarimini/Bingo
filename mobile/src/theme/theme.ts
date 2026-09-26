@@ -20,6 +20,15 @@ export const colors = {
   winLine: '#FFFFFF',
 };
 
+// One distinct, vibrant color per B-I-N-G-O column.
+export const columnColors: Record<'B' | 'I' | 'N' | 'G' | 'O', string> = {
+  B: '#FF6B6B',
+  I: '#FFB020',
+  N: '#2DD4BF',
+  G: '#4D96FF',
+  O: '#B47CFF',
+};
+
 export const spacing = (n: number) => n * 8;
 
 export const radius = {

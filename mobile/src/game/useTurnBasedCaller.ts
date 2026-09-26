@@ -3,6 +3,7 @@ import { useOfflineStore } from '../store/offlineStore';
 import { playTapSound } from './sounds';
 
 const TICK_MS = 1400;
+const MAX_NUMBER = 75;
 
 /**
  * Drives only the bot's side of the turn: once it's the bot's turn, waits a
@@ -14,8 +15,9 @@ export function useTurnBasedCaller() {
   useEffect(() => {
     const timer = setInterval(() => {
       const state = useOfflineStore.getState();
-      if (state.status !== 'PLAYING') return;
+      if (state.mode !== 'bot') return;
       if (state.turn !== 'bot') return;
+      if (state.calledNumbers.length >= MAX_NUMBER) return;
 
       state.performTurn();
       playTapSound();

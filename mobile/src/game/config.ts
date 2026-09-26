@@ -13,3 +13,8 @@ export const SERVER_URL = PRODUCTION_SERVER_URL;
 export const SOCKET_ACK_TIMEOUT_MS = 8000;
 
 export const ROOM_CODE_LENGTH = 5;
+
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS_LIMIT = 6;
+export const MIN_ROUNDS = 3;
+export const MAX_ROUNDS_LIMIT = 15;

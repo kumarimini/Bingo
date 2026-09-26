@@ -47,11 +47,12 @@ interface OnlineState {
   error: string | null;
   bingoResult: BingoResult | null;
   gameEndWinners: RoomState['winners'] | null;
+  gameEndPlayers: RoomState['players'] | null;
 
   connect: () => void;
-  createRoom: (playerName: string) => Promise<{ ok: boolean; error?: string }>;
+  createRoom: (playerName: string, maxPlayers: number, totalRounds: number) => Promise<{ ok: boolean; error?: string }>;
   joinRoom: (code: string, playerName: string) => Promise<{ ok: boolean; error?: string }>;
-  placeNumber: (row: number, col: number) => void;
+  startGame: () => Promise<{ ok: boolean; error?: string }>;
   callNumber: (number: number) => void;
   markNumber: (number: number) => void;
   claimBingo: () => void;
@@ -66,6 +67,7 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
   error: null,
   bingoResult: null,
   gameEndWinners: null,
+  gameEndPlayers: null,
 
   connect: () => {
     const socket = getSocket();
@@ -82,24 +84,24 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
     socket.on(EVENTS.ROOM_UPDATE, (room: RoomState) => set({ room }));
 
     socket.on(EVENTS.BINGO_VALID, ({ playerName, round }: { playerName: string; round: number }) => {
-      set({ bingoResult: { ok: true, message: `${playerName} completed ROUND ${round}.`, round, playerName } });
+      set({ bingoResult: { ok: true, message: `${playerName} won Round ${round}!`, round, playerName } });
     });
 
     socket.on(EVENTS.BINGO_INVALID, ({ reason }: { reason: string }) => {
       set({ bingoResult: { ok: false, message: reason } });
     });
 
-    socket.on(EVENTS.GAME_END, ({ winners }: { winners: RoomState['winners'] }) => {
-      set({ gameEndWinners: winners });
+    socket.on(EVENTS.GAME_END, ({ winners, players }: { winners: RoomState['winners']; players: RoomState['players'] }) => {
+      set({ gameEndWinners: winners, gameEndPlayers: players });
     });
   },
 
-  createRoom: async (playerName: string) => {
+  createRoom: async (playerName: string, maxPlayers: number, totalRounds: number) => {
     const socket = getSocket();
     const res = await emitWithTimeout<{ ok: boolean; room?: RoomState; playerId?: string; error?: string }>(
       socket,
       EVENTS.CREATE_ROOM,
-      { playerName },
+      { playerName, maxPlayers, totalRounds },
       `Couldn't reach the server at ${SERVER_URL}. Check it's running and reachable.`
     );
     if (res.ok && res.room && res.playerId) {
@@ -124,10 +126,17 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
     return { ok: false, error: res.error };
   },
 
-  placeNumber: (row: number, col: number) => {
+  startGame: async () => {
     const { room, playerId } = get();
-    if (!room || !playerId) return;
-    getSocket().emit(EVENTS.PLACE_NUMBER, { code: room.code, playerId, row, col }, () => {});
+    if (!room || !playerId) return { ok: false, error: 'No active room' };
+    const socket = getSocket();
+    const res = await emitWithTimeout<AckResult>(
+      socket,
+      EVENTS.START_GAME,
+      { code: room.code, playerId },
+      "Couldn't reach the server. Check your connection and try again."
+    );
+    return res;
   },
 
   callNumber: (number: number) => {
@@ -150,5 +159,6 @@ export const useOnlineStore = create<OnlineState>((set, get) => ({
 
   clearBingoResult: () => set({ bingoResult: null }),
 
-  reset: () => set({ room: null, playerId: null, error: null, bingoResult: null, gameEndWinners: null }),
+  reset: () =>
+    set({ room: null, playerId: null, error: null, bingoResult: null, gameEndWinners: null, gameEndPlayers: null }),
 }));

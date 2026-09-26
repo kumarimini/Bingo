@@ -7,65 +7,57 @@ import BackButton from '../components/BackButton';
 import EmptyState from '../components/EmptyState';
 import BingoGrid from '../components/BingoGrid';
 import { useOfflineStore } from '../store/offlineStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { useLeaderboardStore } from '../store/leaderboardStore';
-import { useTurnBasedCaller } from '../game/useTurnBasedCaller';
 import { computeScore } from '../game/logic';
 import { playTapSound, playWinSound } from '../game/sounds';
 import { colors, spacing, font, radius } from '../theme/theme';
 
-export default function OfflineGameScreen() {
+export default function JustShowBoardScreen() {
   const router = useRouter();
-  useTurnBasedCaller();
-
-  const { mode, players, markedNumbers, turn, announcement } = useOfflineStore();
-  const performTurn = useOfflineStore((s) => s.performTurn);
+  const name = useSettingsStore((s) => s.name);
+  const setupBoardOnly = useOfflineStore((s) => s.setupBoardOnly);
   const fillBoard = useOfflineStore((s) => s.fillBoard);
+  const markCell = useOfflineStore((s) => s.markCell);
+  const players = useOfflineStore((s) => s.players);
+  const markedNumbers = useOfflineStore((s) => s.markedNumbers);
+  const announcement = useOfflineStore((s) => s.announcement);
   const dismissAnnouncement = useOfflineStore((s) => s.dismissAnnouncement);
   const addEntry = useLeaderboardStore((s) => s.addEntry);
 
-  const human = players.find((p) => !p.isBot);
-  const bot = players.find((p) => p.isBot);
+  useEffect(() => {
+    setupBoardOnly(name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (announcement) playWinSound();
   }, [announcement]);
 
-  if (mode !== 'bot' || !human) {
-    return <EmptyState message="No game in progress. Go back and start one from Home." />;
-  }
+  const player = players[0];
 
-  const score = computeScore(human.grid, markedNumbers);
-  const isMyTurn = turn === 'human';
+  if (!player) return <EmptyState message="Setting up your board…" />;
 
-  const handleCallNumber = () => {
-    if (!isMyTurn) return;
-    performTurn();
+  const score = computeScore(player.grid, markedNumbers);
+
+  const handleCellPress = (row: number, col: number) => {
+    markCell(player.id, row, col);
     playTapSound();
   };
 
   const handleFillBoard = () => {
-    if (score > 0) addEntry({ name: human.name, score, mode: 'Computer' });
+    if (score > 0) addEntry({ name: player.name, score, mode: 'Solo' });
     fillBoard();
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
-      <Text style={styles.title}>Play vs Bot</Text>
+      <Text style={styles.title}>Just Show Me the Board</Text>
 
-      <BingoGrid grid={human.grid} markedNumbers={markedNumbers} />
+      <BingoGrid grid={player.grid} markedNumbers={markedNumbers} onCellPress={handleCellPress} />
 
       <Text style={styles.score}>Score: {score}</Text>
-
-      <View style={styles.turnArea}>
-        <Text style={styles.turnLabel}>{isMyTurn ? 'Your Turn' : `${bot?.name ?? 'Bot'} is calling…`}</Text>
-        <Button
-          title="Call Number"
-          onPress={handleCallNumber}
-          disabled={!isMyTurn}
-          style={{ marginTop: spacing(1.5) }}
-        />
-      </View>
 
       <View style={styles.actions}>
         <Button title="Leaderboard" variant="secondary" onPress={() => router.push('/leaderboard')} style={{ flex: 1 }} />
@@ -78,7 +70,9 @@ export default function OfflineGameScreen() {
           <View style={styles.resultCard}>
             <Text style={styles.resultTitle}>{announcement?.kind === 'fullhouse' ? '🏆 Full House!' : '🎉 Bingo!'}</Text>
             <Text style={styles.resultText}>
-              {announcement?.playerName} {announcement?.kind === 'fullhouse' ? 'completed the whole card!' : 'completed a line!'}
+              {announcement?.kind === 'fullhouse'
+                ? "You've marked the whole card!"
+                : "You've completed a line!"}
             </Text>
             <Button title="Keep Playing" onPress={dismissAnnouncement} />
           </View>
@@ -99,8 +93,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   score: { color: colors.gold, fontSize: font.h3, fontWeight: '800', textAlign: 'center', marginVertical: spacing(2) },
-  turnArea: { alignItems: 'center', marginBottom: spacing(2) },
-  turnLabel: { color: colors.text, fontWeight: '700', fontSize: font.h3 },
   actions: { flexDirection: 'row' },
   resultBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: spacing(3) },
   resultCard: { backgroundColor: colors.bgAlt, borderRadius: radius.lg, padding: spacing(3), width: '100%', alignItems: 'center' },

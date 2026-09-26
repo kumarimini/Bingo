@@ -1,35 +1,35 @@
-export type GameStatus =
-  | 'WAITING'
-  | 'CARD_CREATION'
-  | 'ROUND_1'
-  | 'ROUND_2'
-  | 'ROUND_3'
-  | 'COMPLETED';
+export type GameStatus = 'WAITING' | 'PLAYING' | 'COMPLETED';
 
-export type RoundNumber = 1 | 2 | 3;
+export type Grid = number[][];
 
 export interface Player {
   id: string;
   socketId: string | null;
   name: string;
-  grid: (number | null)[][]; // 5x5, null until filled
-  nextNumber: number; // next number to place, 1-26 (26 = card complete)
-  ready: boolean;
+  grid: Grid;
   connected: boolean;
-  roundsWon: RoundNumber[];
+  totalScore: number;
+  roundsWon: number[];
 }
 
 export interface RoomState {
   code: string;
   hostId: string;
   status: GameStatus;
+  maxPlayers: number;
+  totalRounds: number;
+  currentRound: number;
   players: Player[];
-  calledNumbers: number[]; // in call order
-  markedNumbers: number[]; // globally marked numbers
-  currentRound: RoundNumber;
-  winners: { round: RoundNumber; playerId: string; playerName: string }[];
+  calledNumbers: number[];
+  markedNumbers: number[];
+  winners: { round: number; playerId: string; playerName: string }[];
   createdAt: number;
 }
 
 export const GRID_SIZE = 5;
-export const CARD_TOTAL = GRID_SIZE * GRID_SIZE;
+export const FREE_SPACE = 0;
+export const MAX_NUMBER = 75;
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS_LIMIT = 6;
+export const MIN_ROUNDS = 3;
+export const MAX_ROUNDS_LIMIT = 15;
