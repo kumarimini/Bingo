@@ -29,11 +29,15 @@ export default function OfflineCompleteScreen() {
 
       <View style={styles.results}>
         {[1, 2, 3].map((round) => {
-          const winner = winners.find((w) => w.round === round);
+          // Full house (round 3) can be completed by both players at the
+          // exact same instant, since every card holds all 25 numbers — show
+          // every winner of a round, not just the first.
+          const roundWinners = winners.filter((w) => w.round === round);
+          const label = roundWinners.length ? roundWinners.map((w) => w.playerName).join(' & ') : '—';
           return (
             <View key={round} style={styles.row}>
               <Text style={styles.roundText}>ROUND {round}</Text>
-              <Text style={styles.winnerText}>{winner?.playerName ?? '—'}</Text>
+              <Text style={styles.winnerText}>{label}</Text>
             </View>
           );
         })}

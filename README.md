@@ -1,6 +1,6 @@
 # Bingo Mobile Game
 
-Social Bingo for Android & iOS: players build their own 5×5 cards by tapping boxes (numbers 1–25 assigned automatically, in order, wherever you tap). The game starts the instant the 25th number is placed. During play, tapping any number on your own card calls and marks it in one motion ("cuts" it) — marking is global and syncs to everyone's card. Winning lines are classic Bingo: any row, column, or diagonal. Three rounds: One Line → Two Lines → Full House, each claimed automatically the moment your card satisfies it.
+Social Bingo for Android & iOS: players build their own 5×5 cards by tapping boxes (numbers 1–25 assigned automatically, in order, wherever you tap). The game starts the instant the 25th number is placed. Winning lines are classic Bingo: any row, column, or diagonal. Three rounds: One Line → Two Lines → Full House, each claimed automatically the moment a card satisfies it.
 
 ## Structure
 
@@ -9,8 +9,8 @@ Social Bingo for Android & iOS: players build their own 5×5 cards by tapping bo
 
 ## Game modes
 
-- **Host Game / Join Game** — real multiplayer over the internet. One player hosts (a room code is generated), the other enters that code from their own phone, anywhere. Requires the server below to be running and reachable. The "Create My Card" button stays disabled until someone else has actually joined the room.
-- **Play vs Bot** — single player vs 1–3 AI opponents, entirely on-device, no server needed. Bots get a card instantly and play automatically (touch an unmarked number from their own card, auto-claim Bingo the instant their pattern completes).
+- **Host Game / Join Game** — real multiplayer over the internet, exactly two human players. One hosts (a room code is generated), the other enters that code from their own phone, anywhere. Requires the server below to be running and reachable. The "Create My Card" button stays disabled until someone else has actually joined the room. Tapping any unmarked number on your own card calls and marks it in one motion ("cuts" it), globally, on both cards.
+- **Play vs Bot** — you vs exactly one bot, entirely on-device, no server needed. Different flow from Host/Join Game: numbers are called automatically, one by one, alternating turns between you and the bot (no tapping to call) — a short "Your Turn" / "Bot's Turn" indicator shows whose call is next. When either of you completes a round, a fresh card-creation phase starts for the *next* round (not the same card carried over) — the bot's new card fills instantly, you tap through yours again. Full house (round 3) is completed by both cards at the same instant every time (every card holds all 25 numbers), so it can end in a tie — both names show on the results screen when that happens.
 
 ## Running locally
 
@@ -105,7 +105,9 @@ npx eas-cli@latest submit --platform android
 ## Core game rules implemented
 
 - Card creation: tap any empty cell to place the next sequential number (1→25); no typing, no "next number" indicator — just tap through. The game starts automatically the instant the 25th number is placed.
-- Gameplay: there's no separate "call" step or Bingo button — tapping any not-yet-marked number on your own card calls and marks it in one action, globally, and it can't be tapped again. A round is claimed automatically the moment your card satisfies its pattern.
+- Host/Join Game: no separate "call" step or Bingo button — tapping any not-yet-marked number on your own card calls and marks it in one action, globally, and it can't be tapped again.
+- Play vs Bot: numbers call themselves, one at a time, turns alternating between you and the bot — nothing to tap during play itself, just watch your card fill in. A won round starts a brand-new card-creation phase for the next round rather than continuing on the same card.
+- A round is claimed automatically the moment a card satisfies its pattern — no manual Bingo button anywhere.
 - Winning lines: any full row, column, or diagonal counts. Round 1 = any one line, Round 2 = any two lines, Round 3 = full house (all 25).
 - The BINGO letters at the top of the game screen cross out one at a time as your card completes lines (up to 5); a straight line is drawn across the grid for each completed line, and marked numbers show a strike-through.
 - Tapping a number plays a short sound; completing a round plays a win sound.

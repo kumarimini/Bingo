@@ -8,26 +8,24 @@ import EmptyState from '../components/EmptyState';
 import BingoGrid from '../components/BingoGrid';
 import BingoLettersHeader from '../components/BingoLettersHeader';
 import { useOfflineStore } from '../store/offlineStore';
-import { useBotAutoplay } from '../game/useBotAutoplay';
-import { checkRoundWin, countCompletedLines } from '../game/logic';
-import { playTapSound, playWinSound } from '../game/sounds';
+import { useTurnBasedCaller } from '../game/useTurnBasedCaller';
+import { countCompletedLines } from '../game/logic';
+import { playWinSound } from '../game/sounds';
 import { colors, spacing, font, radius } from '../theme/theme';
 
 export default function OfflineGameScreen() {
   const router = useRouter();
-  useBotAutoplay();
+  useTurnBasedCaller();
 
-  const { players, markedNumbers, currentRound, winners } = useOfflineStore();
-  const callNumber = useOfflineStore((s) => s.callNumber);
-  const markNumber = useOfflineStore((s) => s.markNumber);
-  const claimBingo = useOfflineStore((s) => s.claimBingo);
+  const { players, markedNumbers, currentRound, turn, winners } = useOfflineStore();
 
   const human = players.find((p) => !p.isBot);
+  const bot = players.find((p) => p.isBot);
 
   const [resultMsg, setResultMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const seenWinnersRef = useRef(0);
 
-  // Picks up wins from anyone — the human touching the winning number or a bot auto-claiming.
+  // Picks up every round win, whichever player it belongs to.
   useEffect(() => {
     if (winners.length > seenWinnersRef.current) {
       const latest = winners[winners.length - 1];
@@ -41,26 +39,13 @@ export default function OfflineGameScreen() {
 
   const crossedLetters = Math.min(5, countCompletedLines(human.grid, markedNumbers));
 
-  const handleCellPress = (row: number, col: number) => {
-    const num = human.grid[row][col];
-    if (num === null) return;
-    if (markedNumbers.includes(num)) return;
-    callNumber(num);
-    markNumber(num);
-    playTapSound();
-
-    const latest = useOfflineStore.getState();
-    const me = latest.players.find((p) => p.id === human.id);
-    if (!me || me.roundsWon.includes(latest.currentRound)) return;
-    if (checkRoundWin(me.grid, latest.markedNumbers, latest.currentRound)) {
-      claimBingo(me.id);
-    }
-  };
-
   const closeResult = () => {
     setResultMsg(null);
-    if (useOfflineStore.getState().status === 'COMPLETED') {
+    const status = useOfflineStore.getState().status;
+    if (status === 'COMPLETED') {
       router.replace('/offline/complete');
+    } else if (status === 'CARD_CREATION') {
+      router.replace('/offline/card-creation');
     }
   };
 
@@ -69,8 +54,9 @@ export default function OfflineGameScreen() {
       <BackButton />
       <BingoLettersHeader crossedCount={crossedLetters} />
       <Text style={styles.roundLabel}>ROUND {currentRound}</Text>
+      <Text style={styles.turnLabel}>{turn === 'human' ? 'Your Turn' : `${bot?.name ?? 'Bot'}'s Turn`}</Text>
 
-      <BingoGrid grid={human.grid} markedNumbers={markedNumbers} onCellPress={handleCellPress} />
+      <BingoGrid grid={human.grid} markedNumbers={markedNumbers} />
 
       <Modal visible={!!resultMsg} transparent animationType="fade">
         <View style={styles.resultBackdrop}>
@@ -87,7 +73,8 @@ export default function OfflineGameScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing(2.5), paddingTop: spacing(6) },
-  roundLabel: { color: colors.gold, fontWeight: '700', textAlign: 'center', marginBottom: spacing(2), letterSpacing: 1 },
+  roundLabel: { color: colors.gold, fontWeight: '700', textAlign: 'center', marginBottom: spacing(0.5), letterSpacing: 1 },
+  turnLabel: { color: colors.textMuted, fontWeight: '600', textAlign: 'center', marginBottom: spacing(2) },
   resultBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: spacing(3) },
   resultCard: { backgroundColor: colors.bgAlt, borderRadius: radius.lg, padding: spacing(3), width: '100%', alignItems: 'center' },
   resultTitle: { color: colors.text, fontSize: font.h2, fontWeight: '800', marginBottom: spacing(1) },

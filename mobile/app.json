@@ -31,6 +31,14 @@
         }
       ],
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "root": "./src/app"
+      },
+      "eas": {
+        "projectId": "ec49aa68-c678-46d1-859f-3bc860a96007"
+      }
+    }
   }
 }

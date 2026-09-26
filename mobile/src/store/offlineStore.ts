@@ -16,20 +16,23 @@ export interface PlayerSpec {
   isBot: boolean;
 }
 
+export type Turn = 'human' | 'bot';
+
 interface OfflineState {
   players: OfflinePlayer[];
   calledNumbers: number[];
   markedNumbers: number[];
   currentRound: RoundNumber;
+  turn: Turn;
   status: 'CARD_CREATION' | 'PLAYING' | 'COMPLETED';
   winners: { round: RoundNumber; playerName: string }[];
 
   setup: (specs: PlayerSpec[]) => void;
   placeNumber: (playerId: string, row: number, col: number) => void;
   autoFillBotCard: (playerId: string) => void;
-  callNumber: (number: number) => void;
-  markNumber: (number: number) => void;
+  autoCallNext: () => void;
   claimBingo: (playerId: string) => { ok: boolean; message: string };
+  advanceRound: () => void;
   reset: () => void;
 }
 
@@ -38,6 +41,7 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   calledNumbers: [],
   markedNumbers: [],
   currentRound: 1,
+  turn: 'human',
   status: 'CARD_CREATION',
   winners: [],
 
@@ -54,6 +58,7 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       calledNumbers: [],
       markedNumbers: [],
       currentRound: 1,
+      turn: 'human',
       status: 'CARD_CREATION',
       winners: [],
     });
@@ -85,21 +90,32 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
     }));
   },
 
-  callNumber: (number: number) => {
-    set((state) => {
-      if (state.calledNumbers.includes(number)) return state;
-      return { calledNumbers: [...state.calledNumbers, number] };
-    });
+  // Calls one random not-yet-called number (every card holds all 25 numbers,
+  // just at different positions, so any number always applies to both
+  // players) and marks it globally. Flips whose "turn" it is, so the UI can
+  // show calls happening one by one, alternating, rather than in a burst.
+  autoCallNext: () => {
+    const state = get();
+    const uncalled: number[] = [];
+    for (let n = 1; n <= 25; n++) {
+      if (!state.calledNumbers.includes(n)) uncalled.push(n);
+    }
+    if (uncalled.length === 0) return;
+    const n = uncalled[Math.floor(Math.random() * uncalled.length)];
+    set((s) => ({
+      calledNumbers: [...s.calledNumbers, n],
+      markedNumbers: [...s.markedNumbers, n],
+      turn: s.turn === 'human' ? 'bot' : 'human',
+    }));
   },
 
-  markNumber: (number: number) => {
-    set((state) => {
-      if (!state.calledNumbers.includes(number)) return state;
-      if (state.markedNumbers.includes(number)) return state;
-      return { markedNumbers: [...state.markedNumbers, number] };
-    });
-  },
-
+  // Only records the win — does NOT advance the round. Full house (round 3)
+  // is completed by both players at the exact same instant every time (every
+  // card holds all 25 numbers, so "all marked" is true for everyone
+  // simultaneously) — if this also reset/advanced the round immediately,
+  // whichever player happened to be checked first would always win round 3
+  // and the other's identical, simultaneous win would be silently dropped.
+  // Call advanceRound() once after collecting every simultaneous winner.
   claimBingo: (playerId: string) => {
     const state = get();
     const player = state.players.find((p) => p.id === playerId);
@@ -116,11 +132,24 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
         p.id === playerId ? { ...p, roundsWon: [...p.roundsWon, round] } : p
       ),
       winners: [...s.winners, { round, playerName: player.name }],
-      currentRound: round === 3 ? round : ((round + 1) as RoundNumber),
-      status: round === 3 ? 'COMPLETED' : 'PLAYING',
     }));
 
     return { ok: true, message: `${player.name} completed ROUND ${round}.` };
+  },
+
+  advanceRound: () => {
+    set((s) => {
+      const round = s.currentRound;
+      const isFinalRound = round === 3;
+      return {
+        players: s.players.map((p) => (isFinalRound ? p : { ...p, grid: emptyGrid(), nextNumber: 1 })),
+        currentRound: isFinalRound ? round : ((round + 1) as RoundNumber),
+        calledNumbers: isFinalRound ? s.calledNumbers : [],
+        markedNumbers: isFinalRound ? s.markedNumbers : [],
+        turn: 'human',
+        status: isFinalRound ? 'COMPLETED' : 'CARD_CREATION',
+      };
+    });
   },
 
   reset: () =>
@@ -129,6 +158,7 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       calledNumbers: [],
       markedNumbers: [],
       currentRound: 1,
+      turn: 'human',
       status: 'CARD_CREATION',
       winners: [],
     }),

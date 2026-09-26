@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { Text, TextInput, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Button from '../components/Button';
@@ -8,18 +8,19 @@ import DismissKeyboardView from '../components/DismissKeyboardView';
 import { useOfflineStore } from '../store/offlineStore';
 import { colors, spacing, font, radius } from '../theme/theme';
 
-const MAX_BOTS = 3;
-
 export default function BotSetupScreen() {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [botCount, setBotCount] = useState(1);
   const setup = useOfflineStore((s) => s.setup);
 
+  const trimmedName = name.trim();
+
   const start = () => {
-    const human = { name: name.trim() || 'You', isBot: false };
-    const bots = Array.from({ length: botCount }, (_, i) => ({ name: `Bot ${i + 1}`, isBot: true }));
-    setup([human, ...bots]);
+    if (!trimmedName) return;
+    setup([
+      { name: trimmedName, isBot: false },
+      { name: 'Bot', isBot: true },
+    ]);
     router.push('/offline/card-creation');
   };
 
@@ -28,7 +29,7 @@ export default function BotSetupScreen() {
       <BackButton />
       <DismissKeyboardView style={styles.content}>
         <Text style={styles.title}>Play vs Bot</Text>
-        <Text style={styles.subtitle}>Bots build their cards instantly and play automatically.</Text>
+        <Text style={styles.subtitle}>You vs one bot. The bot builds its card instantly and plays automatically.</Text>
 
         <TextInput
           value={name}
@@ -38,26 +39,7 @@ export default function BotSetupScreen() {
           style={styles.input}
         />
 
-        <Text style={styles.stepperLabel}>Number of bots</Text>
-        <View style={styles.stepper}>
-          <Pressable
-            onPress={() => setBotCount((n) => Math.max(1, n - 1))}
-            style={styles.stepperBtn}
-            disabled={botCount <= 1}
-          >
-            <Text style={styles.stepperBtnText}>−</Text>
-          </Pressable>
-          <Text style={styles.stepperValue}>{botCount}</Text>
-          <Pressable
-            onPress={() => setBotCount((n) => Math.min(MAX_BOTS, n + 1))}
-            style={styles.stepperBtn}
-            disabled={botCount >= MAX_BOTS}
-          >
-            <Text style={styles.stepperBtnText}>+</Text>
-          </Pressable>
-        </View>
-
-        <Button title="Start" onPress={start} style={{ marginTop: spacing(3) }} />
+        <Button title="Start" onPress={start} disabled={!trimmedName} style={{ marginTop: spacing(1) }} />
       </DismissKeyboardView>
     </SafeAreaView>
   );
@@ -74,18 +56,5 @@ const styles = StyleSheet.create({
     padding: spacing(1.75),
     color: colors.text,
     fontSize: font.body,
-    marginBottom: spacing(3),
   },
-  stepperLabel: { color: colors.textMuted, textAlign: 'center', marginBottom: spacing(1) },
-  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  stepperBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperBtnText: { color: colors.text, fontSize: font.h2, fontWeight: '700' },
-  stepperValue: { color: colors.gold, fontSize: font.h1, fontWeight: '800', width: 72, textAlign: 'center' },
 });

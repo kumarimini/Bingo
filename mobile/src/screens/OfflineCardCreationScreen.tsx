@@ -11,6 +11,7 @@ import { colors, spacing, font } from '../theme/theme';
 export default function OfflineCardCreationScreen() {
   const router = useRouter();
   const players = useOfflineStore((s) => s.players);
+  const currentRound = useOfflineStore((s) => s.currentRound);
   const placeNumber = useOfflineStore((s) => s.placeNumber);
   const autoFillBotCard = useOfflineStore((s) => s.autoFillBotCard);
 
@@ -40,6 +41,7 @@ export default function OfflineCardCreationScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <BackButton />
+      <Text style={styles.round}>ROUND {currentRound}</Text>
       <Text style={styles.title}>CREATE YOUR CARD</Text>
       <BingoGrid grid={human.grid} onCellPress={handleCellPress} />
     </SafeAreaView>
@@ -48,6 +50,7 @@ export default function OfflineCardCreationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing(3), paddingTop: spacing(6) },
+  round: { color: colors.gold, fontWeight: '700', textAlign: 'center', marginBottom: spacing(0.5), letterSpacing: 1 },
   title: {
     color: colors.textMuted,
     fontSize: font.small,
