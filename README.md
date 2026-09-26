@@ -54,16 +54,53 @@ Note: Render's free plan spins the service down after inactivity, so the first c
 
 If you'd rather not touch `config.ts`, the more "proper" Expo way is to set `EXPO_PUBLIC_SERVER_URL` as a build-time environment variable in your EAS build profile (`eas.json`) instead — either works.
 
-## Publishing to the Play Store
+## Building an installable app
 
-Not something this repo can do on its own — it needs your Google Play Developer account (one-time $25 fee), app signing, and a store listing (screenshots, description, privacy policy). Once you're ready:
+### Android APK (local build, no account needed)
+
+If you have the Android SDK + a JDK installed, you can build a real, installable, debug-signed APK entirely locally:
 
 ```bash
-npx eas-cli@latest build --platform android
+cd mobile
+npx expo prebuild --platform android   # generates android/ (gitignored, regenerate anytime)
+cd android
+JAVA_HOME=/path/to/jdk-17 ./gradlew assembleDebug
+```
+
+The APK lands at `android/app/build/outputs/apk/debug/app-debug.apk` — install it with `adb install app-debug.apk`, or copy it to a phone and open it directly (Android will prompt to allow installs from that source). This uses Gradle's built-in debug keystore, so it installs and runs like a normal app, just not signed for the Play Store.
+
+Use JDK 17 specifically — newer JDKs (21/23) can fail the Android Gradle Plugin build; `brew install openjdk@17` if you don't have it.
+
+### iOS
+
+Building for iOS needs the full Xcode.app (not just the Command Line Tools) — a multi-GB install from the App Store that requires an Apple ID sign-in, so it can't be done headlessly from a CI-style environment. From a Mac with Xcode installed:
+
+```bash
+cd mobile
+npx expo run:ios              # simulator build, no Apple Developer account needed
+```
+
+For a build to install on a real iPhone or submit to TestFlight/the App Store, use EAS Build instead (works from any machine, including one without Xcode):
+
+```bash
+npx eas-cli@latest login                                # your free Expo account
+npx eas-cli@latest build --platform ios --profile preview   # simulator build, no paid account needed
+npx eas-cli@latest build --platform ios --profile production # real device / App Store, needs Apple Developer Program ($99/yr)
+```
+
+`eas.json` is already set up with `development`/`preview`/`production` profiles (the `preview` Android profile also builds an APK, as an alternative to the local Gradle build above).
+
+### Publishing to the Play Store
+
+Needs your Google Play Developer account (one-time $25 fee), app signing, and a store listing (screenshots, description, privacy policy). Once you're ready:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build --platform android --profile production
 npx eas-cli@latest submit --platform android
 ```
 
-`eas build` needs an Expo account (free) and will prompt you through generating a signing key the first time. This repo doesn't yet have `eas.json` set up — ask if you want that scaffolded.
+`eas build` will prompt you through generating a signing key the first time.
 
 ## Core game rules implemented
 
