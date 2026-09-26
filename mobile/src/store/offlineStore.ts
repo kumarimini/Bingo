@@ -33,6 +33,7 @@ interface OfflineState {
   autoCallNext: () => void;
   claimBingo: (playerId: string) => { ok: boolean; message: string };
   advanceRound: () => void;
+  performTurn: () => void;
   reset: () => void;
 }
 
@@ -150,6 +151,25 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
         status: isFinalRound ? 'COMPLETED' : 'CARD_CREATION',
       };
     });
+  },
+
+  // The one shared step of "a turn happens": call a number, then check every
+  // player for a completed round and claim for all of them before advancing
+  // once. Used identically whether the human tapped "Call Number" or the
+  // bot's own timer triggered it — the human explicitly drives their own
+  // turn, the bot's turn (and only the bot's turn) runs on its own.
+  performTurn: () => {
+    get().autoCallNext();
+    const latest = get();
+    let anyWinner = false;
+    for (const player of latest.players) {
+      if (player.roundsWon.includes(latest.currentRound)) continue;
+      if (checkRoundWin(player.grid, latest.markedNumbers, latest.currentRound)) {
+        get().claimBingo(player.id);
+        anyWinner = true;
+      }
+    }
+    if (anyWinner) get().advanceRound();
   },
 
   reset: () =>

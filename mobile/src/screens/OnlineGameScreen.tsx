@@ -82,7 +82,7 @@ export default function OnlineGameScreen() {
       <Modal visible={!!bingoResult} transparent animationType="fade">
         <View style={styles.resultBackdrop}>
           <View style={styles.resultCard}>
-            <Text style={styles.resultTitle}>{bingoResult?.ok ? '🎉 BINGO!' : 'Not Bingo'}</Text>
+            <Text style={styles.resultTitle}>{bingoResult?.ok ? '🎉 Bingo!' : 'Not Bingo'}</Text>
             <Text style={styles.resultText}>{bingoResult?.message}</Text>
             <Button title="Continue" onPress={clearBingoResult} />
           </View>

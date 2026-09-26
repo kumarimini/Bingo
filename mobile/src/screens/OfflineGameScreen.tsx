@@ -10,27 +10,30 @@ import BingoLettersHeader from '../components/BingoLettersHeader';
 import { useOfflineStore } from '../store/offlineStore';
 import { useTurnBasedCaller } from '../game/useTurnBasedCaller';
 import { countCompletedLines } from '../game/logic';
-import { playWinSound } from '../game/sounds';
+import { playTapSound, playWinSound } from '../game/sounds';
 import { colors, spacing, font, radius } from '../theme/theme';
 
 export default function OfflineGameScreen() {
   const router = useRouter();
   useTurnBasedCaller();
 
-  const { players, markedNumbers, currentRound, turn, winners } = useOfflineStore();
+  const { players, markedNumbers, currentRound, turn, status, winners } = useOfflineStore();
 
   const human = players.find((p) => !p.isBot);
   const bot = players.find((p) => p.isBot);
 
   const [resultMsg, setResultMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const seenWinnersRef = useRef(0);
+  // Initialized from the store's current winners count (not 0) — this screen
+  // remounts fresh for every round (card creation happens again in between),
+  // and without this a stale ref would immediately re-show the *previous*
+  // round's win the moment round 2 or 3 starts.
+  const seenWinnersRef = useRef(winners.length);
 
-  // Picks up every round win, whichever player it belongs to.
   useEffect(() => {
     if (winners.length > seenWinnersRef.current) {
       const latest = winners[winners.length - 1];
       seenWinnersRef.current = winners.length;
-      setResultMsg({ ok: true, text: `${latest.playerName} completed ROUND ${latest.round}.` });
+      setResultMsg({ ok: true, text: `${latest.playerName} won Round ${latest.round}!` });
       playWinSound();
     }
   }, [winners]);
@@ -38,13 +41,20 @@ export default function OfflineGameScreen() {
   if (!human) return <EmptyState message="No game in progress. Go back and start one from Home." />;
 
   const crossedLetters = Math.min(5, countCompletedLines(human.grid, markedNumbers));
+  const isMyTurn = status === 'PLAYING' && turn === 'human';
+
+  const handleCallNumber = () => {
+    if (!isMyTurn) return;
+    useOfflineStore.getState().performTurn();
+    playTapSound();
+  };
 
   const closeResult = () => {
     setResultMsg(null);
-    const status = useOfflineStore.getState().status;
-    if (status === 'COMPLETED') {
+    const latestStatus = useOfflineStore.getState().status;
+    if (latestStatus === 'COMPLETED') {
       router.replace('/offline/complete');
-    } else if (status === 'CARD_CREATION') {
+    } else if (latestStatus === 'CARD_CREATION') {
       router.replace('/offline/card-creation');
     }
   };
@@ -54,14 +64,23 @@ export default function OfflineGameScreen() {
       <BackButton />
       <BingoLettersHeader crossedCount={crossedLetters} />
       <Text style={styles.roundLabel}>ROUND {currentRound}</Text>
-      <Text style={styles.turnLabel}>{turn === 'human' ? 'Your Turn' : `${bot?.name ?? 'Bot'}'s Turn`}</Text>
 
       <BingoGrid grid={human.grid} markedNumbers={markedNumbers} />
+
+      <View style={styles.turnArea}>
+        <Text style={styles.turnLabel}>{isMyTurn ? 'Your Turn' : `${bot?.name ?? 'Bot'} is calling…`}</Text>
+        <Button
+          title="Call Number"
+          onPress={handleCallNumber}
+          disabled={!isMyTurn}
+          style={{ marginTop: spacing(1.5) }}
+        />
+      </View>
 
       <Modal visible={!!resultMsg} transparent animationType="fade">
         <View style={styles.resultBackdrop}>
           <View style={styles.resultCard}>
-            <Text style={styles.resultTitle}>{resultMsg?.ok ? '🎉 BINGO!' : 'Not Bingo'}</Text>
+            <Text style={styles.resultTitle}>🎉 Bingo!</Text>
             <Text style={styles.resultText}>{resultMsg?.text}</Text>
             <Button title="Continue" onPress={closeResult} />
           </View>
@@ -73,8 +92,9 @@ export default function OfflineGameScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing(2.5), paddingTop: spacing(6) },
-  roundLabel: { color: colors.gold, fontWeight: '700', textAlign: 'center', marginBottom: spacing(0.5), letterSpacing: 1 },
-  turnLabel: { color: colors.textMuted, fontWeight: '600', textAlign: 'center', marginBottom: spacing(2) },
+  roundLabel: { color: colors.gold, fontWeight: '700', textAlign: 'center', marginBottom: spacing(2), letterSpacing: 1 },
+  turnArea: { alignItems: 'center', marginTop: spacing(3) },
+  turnLabel: { color: colors.text, fontWeight: '700', fontSize: font.h3 },
   resultBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', padding: spacing(3) },
   resultCard: { backgroundColor: colors.bgAlt, borderRadius: radius.lg, padding: spacing(3), width: '100%', alignItems: 'center' },
   resultTitle: { color: colors.text, fontSize: font.h2, fontWeight: '800', marginBottom: spacing(1) },

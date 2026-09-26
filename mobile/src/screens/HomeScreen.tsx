@@ -12,7 +12,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.logo}>🎱 BINGO</Text>
-        <Text style={styles.tagline}>You choose the position. Tap a number on your card to call and cut it.</Text>
+        <Text style={styles.tagline}>Build your card, call the numbers, and race to complete the pattern.</Text>
       </View>
 
       <View style={styles.actions}>

@@ -29,7 +29,10 @@ export default function BotSetupScreen() {
       <BackButton />
       <DismissKeyboardView style={styles.content}>
         <Text style={styles.title}>Play vs Bot</Text>
-        <Text style={styles.subtitle}>You vs one bot. The bot builds its card instantly and plays automatically.</Text>
+        <Text style={styles.subtitle}>
+          You against one bot. Numbers are called automatically, turn by turn — you call yours, the bot calls its
+          own.
+        </Text>
 
         <TextInput
           value={name}
